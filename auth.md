@@ -56,7 +56,7 @@ users
 
 ### Single Strategy
 
-One Passport strategy: `SIWEStrategy` — validates wallet signature via viem, resolves to User entity.
+One Passport strategy: `SIWEStrategy` — validates wallet signature via the `siwe` npm package, resolves to User entity.
 
 ### Guard
 
@@ -78,9 +78,9 @@ For gasless UX, EIP-7702 allows our sponsor account to pay gas while user retain
 
 | Piece | Choice |
 |---|---|
-| Wallet Connect | viem + SIWE (EIP-4361) + EIP-6963 (wallet discovery) |
+| Wallet Connect | viem + `siwe` npm package (EIP-4361) + EIP-6963 (wallet discovery) |
 | JWT | NestJS Passport + @nestjs/jwt |
-| Nonce Storage | Redis (short-lived, expires after 5 min) |
+| Nonce Storage | PostgreSQL `nonces` table (expires after 5 min, cleaned by cron) |
 
 ## Testing Matrix
 

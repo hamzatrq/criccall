@@ -16,7 +16,7 @@
 - [x] Predictions — Event indexing, winner lists, user stats (predictions.md)
 - [x] Rewards — Proportional PKR to all winners, Merkle trees, claims (rewards.md)
 - [x] Brand Deals — CALL-gated deals, brand profiles, redemption analytics (brand-deals.md)
-- [x] WebSocket + Notifications — Socket.io real-time updates, in-app notifications (websocket-notifications.md)
+- [ ] WebSocket + Notifications — Socket.io real-time updates, in-app notifications (websocket-notifications.md)
 
 ## Frontend — Next.js (apps/web) — (frontend.md)
 - [x] Design system — Dark theme, cricket stadium energy, neon accents

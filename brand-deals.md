@@ -51,7 +51,7 @@ deals
 ├── brand_id        UUID (FK → brand_profiles)
 ├── title           VARCHAR (not null)
 ├── description     TEXT
-├── image_url       VARCHAR (nullable)       ← deal image (MinIO)
+├── image_url       VARCHAR (nullable)       ← deal image (Railway Storage Bucket)
 ├── min_call        INTEGER (not null)       ← minimum CALL balance required
 ├── deal_type       VARCHAR                  ← 'coupon_code', 'link', 'qr_code'
 ├── coupon_code     VARCHAR (nullable)       ← static code, or null if dynamic
@@ -218,12 +218,9 @@ PATCH  /admin/deals/:id/verify         ← Verify/approve a deal
 DELETE /admin/deals/:id                ← Remove a deal
 ```
 
-## Redis Caching
+## Dependencies
 
-```
-deals:active                        → list of active deal IDs (TTL: 5min)
-deals:category:{cat}                → deals filtered by category (TTL: 5min)
-deal:{id}                           → deal detail (TTL: 5min)
-deal:{id}:redeemed:{userId}         → boolean, has user redeemed (TTL: 1hr)
-user:{address}:eligible_deals       → deal IDs user qualifies for (TTL: 60s)
-```
+- `prisma` + `@prisma/client` — PostgreSQL on Railway
+- `@aws-sdk/client-s3` — Railway Storage Buckets (S3-compatible) for deal images
+- `@aws-sdk/s3-presigned-post` — presigned upload URLs
+- `@aws-sdk/s3-request-presigner` — presigned download URLs

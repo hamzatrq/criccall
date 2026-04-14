@@ -184,9 +184,7 @@ On postWinnerRoot failure:
     - Admin can manually trigger: POST /admin/rewards/:marketId/distribute
 ```
 
-## Redis Caching
+## Dependencies
 
-```
-rewards:user:{address}:unclaimed    → list of unclaimed rewards (TTL: 60s)
-rewards:campaign:{id}:stats         → campaign stats (TTL: 5min)
-```
+- `prisma` + `@prisma/client` — PostgreSQL on Railway
+- `@openzeppelin/merkle-tree` — Merkle tree construction and proof generation

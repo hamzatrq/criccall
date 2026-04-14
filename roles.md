@@ -2,7 +2,7 @@
 
 ## Overview
 
-Unified RBAC using Casbin across NestJS API and Solidity contracts. Three roles: `super_admin`, `sponsor`, `user`. Casbin is the fast off-chain check, Solidity is the trustless on-chain check. Double gate.
+RBAC using a simplified `RolesGuard` with role hierarchy in NestJS, plus Solidity on-chain access control. Three roles: `super_admin`, `sponsor`, `user`. The guard is the fast off-chain check, Solidity is the trustless on-chain check. Double gate.
 
 ## Roles
 
@@ -14,26 +14,9 @@ Unified RBAC using Casbin across NestJS API and Solidity contracts. Three roles:
 
 Role inheritance: `super_admin → sponsor → user`. Each higher role inherits all lower permissions.
 
-## Casbin Model
+## Access Control Policy
 
-```ini
-[request_definition]
-r = sub, obj, act
-
-[policy_definition]
-p = sub, obj, act
-
-[role_definition]
-g = _, _
-
-[policy_effect]
-e = some(where (p.eft == allow))
-
-[matchers]
-m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
-```
-
-## Casbin Policies
+The following policy table documents the access control intent. The implementation uses a simplified `RolesGuard` with role hierarchy (`super_admin > sponsor > user`) rather than a full Casbin enforcer.
 
 ```csv
 # Super Admin
@@ -73,9 +56,9 @@ g, sponsor, user
 
 ## Solidity Role Mapping
 
-Casbin policies map to on-chain access control. Backend checks Casbin first, contracts enforce at Solidity level.
+RolesGuard policies map to on-chain access control. Backend checks RolesGuard first, contracts enforce at Solidity level.
 
-| Casbin Policy | Contract Function | Solidity Guard |
+| Policy | Contract Function | Solidity Guard |
 |---|---|---|
 | `super_admin, markets, create` | `market.createMarket()` | `onlyOwner` |
 | `super_admin, oracle, commit` | `oracle.commitResult()` | `authorizedOracles[msg.sender]` |
@@ -96,21 +79,21 @@ Casbin policies map to on-chain access control. Backend checks Casbin first, con
 Deployer Wallet (1)
   └─ Owns all contracts (onlyOwner)
   └─ Mints PKR tokens
-  └─ super_admin role in Casbin
+  └─ super_admin role in DB
 
 Oracle Wallet (1)
   └─ authorizedOracles on CricketOracle.sol
   └─ Used only by Oracle Service internally
-  └─ Not a Casbin user — service-level key
+  └─ Not a DB user — service-level key
 
 Sponsor Wallets (N)
   └─ whitelistedSponsors on SponsorVault.sol
-  └─ sponsor role in Casbin
+  └─ sponsor role in DB
   └─ Each brand has their own wallet
 
 User Wallets (N)
   └─ No special on-chain role
-  └─ user role in Casbin
+  └─ user role in DB
   └─ Connect via MetaMask / SIWE
 ```
 
@@ -129,26 +112,25 @@ users
 └── updated_at      TIMESTAMP
 ```
 
-Role stored in users table. Loaded into Casbin enforcer on authentication.
+Role stored in users table. Checked by RolesGuard on each request.
 
 ## NestJS Integration
 
 ### Guard
 
 ```typescript
-@UseGuards(JwtAuthGuard, CasbinGuard)
-@CasbinResource('markets')
-@CasbinAction('create')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin')
 @Post('/markets')
 createMarket() { ... }
 ```
 
-### CasbinGuard Logic
+### RolesGuard Logic
 
 ```
 1. Extract user from JWT
 2. Load role from user record
-3. Enforcer.enforce(role, resource, action)
+3. Check if user's role meets the required role (using hierarchy: super_admin > sponsor > user)
 4. Allow or deny
 ```
 
@@ -166,4 +148,4 @@ Guard: super_admin only
 
 ## Package
 
-`node-casbin` with `typeorm-adapter` for policy persistence in PostgreSQL. Policies loaded once on app startup, cached in memory.
+Simplified `RolesGuard` implemented as a custom NestJS guard with `@Roles()` decorator. No external RBAC library needed. Role hierarchy is hardcoded: `super_admin > sponsor > user`. Database access via `prisma` + `@prisma/client` (PostgreSQL on Railway).

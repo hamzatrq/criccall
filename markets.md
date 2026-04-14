@@ -121,7 +121,7 @@ Each sponsor provides:
 - **Click-through URL** (optional) — link when user taps sponsor logo
 - **Sponsor name** (required) — display name
 
-Stored in MinIO, URLs in DB.
+Stored in Railway Storage Buckets (S3-compatible), URLs in DB.
 
 ## Market Card Rendering
 
@@ -343,15 +343,6 @@ POST   /admin/matches/sync              ← Force sync match schedule
 GET /markets?status=open&tournament=PSL&matchType=T20&page=1&limit=20
 GET /markets?status=resolved&sort=resolved_at:desc
 GET /markets/live?team=Pakistan
-```
-
-## Redis Caching
-
-```
-market:{onChainId}           → full market + sponsors (TTL: 30s open, 5min resolved)
-market:{onChainId}:pools     → { yesPool, noPool } (TTL: 10s)
-markets:live                 → list of live market IDs (TTL: 30s)
-match:{matchId}:status       → match status from API (TTL: 60s)
 ```
 
 ## Sponsor Analytics

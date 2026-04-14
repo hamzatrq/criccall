@@ -2,7 +2,7 @@
 
 ## Overview
 
-Shared NestJS injectable service that manages viem wallet clients, contract instances, and on-chain utilities. Every backend module that touches WireFluid goes through this service. Two isolated wallets with least-privilege separation.
+Shared NestJS injectable service that manages viem wallet clients, contract instances, and on-chain utilities. Every backend module that touches WireFluid goes through this service. Two isolated wallets with least-privilege separation. For the hackathon, this service provides read/write contract methods and on-chain event watching. RPC failover and health monitoring are post-hackathon.
 
 ## Architecture
 
@@ -26,8 +26,8 @@ Shared NestJS injectable service that manages viem wallet clients, contract inst
 │  ├── getPublicClient()                       │
 │  ├── waitForTransaction()                    │
 │  ├── estimateGas()                           │
-│  ├── getWalletBalance()                      │
-│  └── watchContractEvent()                    │
+│  ├── getTransactionReceipt()                 │
+│  └── watchContractEvent(contract, event, cb) │
 │                                              │
 │  Used by:                                    │
 │  ├── OracleModule                            │
@@ -110,67 +110,35 @@ Polls until tx is confirmed on WireFluid (~5s with CometBFT finality). Returns r
 
 Pre-flight gas estimation before submitting. Used to avoid wasting gas on transactions that will revert. Returns estimated gas units.
 
-### getWalletBalance(wallet)
-
-Returns WIRE balance for a given wallet. Used for health monitoring — alerts if oracle wallet runs low on gas.
-
 ### getTransactionReceipt(hash)
 
 Fetch receipt for a submitted transaction. Used for verification and audit logging.
 
 ## Event Listening
 
-```
-watchContractEvent(contract, eventName, callback)
-```
+On-chain event watching via `watchContractEvent()`. The WireFluidService subscribes to contract events at startup and routes them to the appropriate module handlers.
 
-Subscribes to on-chain events via WebSocket RPC. Used by other modules to react to on-chain state changes.
+### Events Monitored
 
-| Event | Source Contract | Triggers |
-|---|---|---|
-| `MarketResolved` | PredictionMarket | Reward computation in RewardsModule |
-| `MarketCanceled` | PredictionMarket | Refund notification to users |
-| `RewardClaimed` | SponsorVault | Redemption stats update |
-| `CallClaimed` | CALLToken | User balance cache update |
-| `WinningsClaimed` | PredictionMarket | User balance cache update |
+| Event | Action |
+|---|---|
+| `MarketResolved` | Trigger reward computation via Rewards module |
+| `MarketCanceled` | Notify users of refund availability via WebSocket |
+| `RewardClaimed` | Update redemption stats in DB |
+| `PredictionPlaced` | Update market pools in DB, push update via WebSocket |
+| `WinningsClaimed` | Update user balance cache in DB |
 
-## RPC Failover
+### watchContractEvent(contract, eventName, callback)
 
-WireFluid provides 5 RPC endpoints. Service cycles through them on failure.
+Subscribes to a specific event on a contract instance using viem's `watchContractEvent`. Callback receives decoded event args. Used by Predictions, Markets, and Rewards modules to react to on-chain state changes in real time.
 
-```
-Primary:  https://evm.wirefluid.com
-Fallback: https://evm2.wirefluid.com
-          https://evm3.wirefluid.com
-          https://evm4.wirefluid.com
-          https://evm5.wirefluid.com
-```
+## Post-Hackathon
 
-On RPC timeout or connection error:
-1. Rotate to next endpoint
-2. Retry the failed request
-3. Log the failover event
-4. If all 5 fail, throw and alert
+The following features are planned but not implemented for the hackathon:
 
-## Health Monitoring
-
-```
-checkHealth()
-  → Verify RPC connection alive (eth_blockNumber call)
-  → Check both wallet balances
-  → Return: {
-      rpc: "connected",
-      blockNumber: 12345,
-      wallets: {
-        owner: "0.5 WIRE",
-        oracle: "0.3 WIRE"
-      }
-    }
-```
-
-Alert thresholds:
-- Wallet < 0.1 WIRE → log warning
-- Wallet < 0.01 WIRE → log critical, block write operations for that wallet
+- **RPC Failover** — cycling through multiple WireFluid RPC endpoints on failure
+- **Health Monitoring** — wallet balance alerts, RPC health checks
+- **getWalletBalance()** — WIRE balance checks for gas monitoring
 
 ## Module Usage Pattern
 

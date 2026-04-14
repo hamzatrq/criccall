@@ -62,7 +62,7 @@ Every 30 seconds during active matches:
   2. For each match we have a market for:
      - Check if status changed to "completed"
      - If completed → trigger OracleResolverService
-  3. Store latest match state in Redis (cache)
+  3. Store latest match state in DB
 ```
 
 Configuration:
@@ -80,13 +80,12 @@ resolveMatch(matchId, outcome):
   1. Generate random 32-byte secret
   2. Compute commitHash = keccak256(abi.encode(matchId, outcome, secret))
   3. Call CricketOracle.commitResult(matchId, commitHash)
-  4. Store secret in Redis with TTL of 5 minutes
-     Key: oracle:secret:{matchId}
+  4. Store secret in oracle_resolutions.secret column (PostgreSQL)
   5. Wait for tx confirmation (~5s on WireFluid)
-  6. Retrieve secret from Redis
+  6. Retrieve secret from oracle_resolutions table
   7. Call CricketOracle.revealResult(matchId, outcome, secret)
-  8. Log resolution to PostgreSQL (audit trail)
-  9. Delete secret from Redis
+  8. Update resolution record in PostgreSQL (audit trail)
+  9. Clear secret from oracle_resolutions.secret column
 ```
 
 Signing: Uses a dedicated oracle wallet. Private key in `ORACLE_PRIVATE_KEY` env var. This address must be added via `CricketOracle.addOracle()` before use.
@@ -128,6 +127,7 @@ oracle_resolutions
 ├── id              UUID (PK)
 ├── match_id        VARCHAR (unique)
 ├── outcome         SMALLINT
+├── secret          VARCHAR (nullable)      ← 32-byte secret, cleared after reveal
 ├── commit_tx_hash  VARCHAR
 ├── reveal_tx_hash  VARCHAR
 ├── source          ENUM('api', 'admin')
@@ -136,29 +136,21 @@ oracle_resolutions
 └── updated_at      TIMESTAMP
 ```
 
-## Redis Keys
-
-```
-oracle:secret:{matchId}     → 32-byte secret (TTL: 5 min)
-oracle:match:{matchId}      → cached match state from API (TTL: 60s)
-oracle:polling:active        → boolean flag, set when poller is running
-```
-
 ## Error Handling
 
 | Scenario | Handling |
 |---|---|
 | API rate limit hit | Back off, retry after cooldown. Alert admin. |
 | Commit tx fails | Retry up to 3 times with exponential backoff. Log failure. |
-| Reveal tx fails | Critical — secret is in Redis. Retry immediately. Alert admin. |
-| Secret lost (Redis crash) | Secret is unrecoverable. Match cannot be resolved via this commit. Admin must create a new commit-reveal cycle. |
+| Reveal tx fails | Critical — secret is in DB. Retry immediately. Alert admin. |
+| Secret lost (DB issue) | Secret is unrecoverable. Match cannot be resolved via this commit. Admin must create a new commit-reveal cycle. |
 | API returns ambiguous result | Do not resolve. Flag for manual review via admin endpoint. |
 | Oracle wallet out of gas | Alert admin. Do not attempt transactions. |
 
 ## Security
 
 - Oracle wallet private key stored in env, never in code or DB
-- Secrets stored in Redis with short TTL, encrypted at rest if Redis supports it
+- Secrets stored in PostgreSQL `oracle_resolutions.secret` column, cleared after reveal
 - Admin endpoint behind JWT auth + admin role guard
 - Commit-reveal prevents frontrunning even if oracle tx is visible in mempool
 - Only whitelisted oracle addresses can call commitResult/revealResult on-chain

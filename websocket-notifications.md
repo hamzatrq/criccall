@@ -163,9 +163,9 @@ PATCH  /notifications/read-all      ← Mark all as read
 
 ## Scaling (Post-Hackathon)
 
-For hackathon: single NestJS instance with Socket.io.
+For hackathon: single NestJS instance with Socket.io. No Redis adapter needed.
 
-For production: `@socket.io/redis-adapter` — multiple NestJS instances share WebSocket state via Redis pub/sub.
+For production: `@socket.io/redis-adapter` — multiple NestJS instances share WebSocket state via pub/sub. Not implemented for hackathon.
 
 ## Dependencies
 

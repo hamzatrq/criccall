@@ -31,7 +31,7 @@ PredictionPlaced event emitted
 Backend indexes event:
   - Insert into predictions table
   - Update user's cached_call_balance
-  - Update market's yes_pool/no_pool in DB + Redis
+  - Update market's yes_pool/no_pool in DB
   - Push pool update via WebSocket
     │
     ▼

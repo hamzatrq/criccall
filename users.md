@@ -2,7 +2,7 @@
 
 ## Overview
 
-User profiles, prediction history, and avatar storage. CALL token balance is reputation — leaderboard and tiers derived directly from on-chain balance. MinIO on Railway for avatar storage.
+User profiles, prediction history, and avatar storage. CALL token balance is reputation — leaderboard and tiers derived directly from on-chain balance. Railway Storage Buckets (S3-compatible) for avatar storage.
 
 ## The Core Insight
 
@@ -13,9 +13,9 @@ User profiles, prediction history, and avatar storage. CALL token balance is rep
 | Data | Source of Truth | Stored in DB? | Why |
 |---|---|---|---|
 | Wallet address | Blockchain | Yes | Primary identifier |
-| Role | DB (Casbin) | Yes | Off-chain concept |
+| Role | DB (RolesGuard) | Yes | Off-chain concept |
 | Display name | DB | Yes | User-set, off-chain only |
-| Avatar | MinIO | URL in DB | S3-compatible storage |
+| Avatar | Railway Storage Bucket | URL in DB | S3-compatible storage |
 | Favorite team | DB | Yes | Personalization |
 | CALL balance | Blockchain | Cached | This IS reputation. Cached for fast leaderboard. |
 | Last claimed time | Blockchain | Cached | Needed for "Claim" button state |
@@ -137,27 +137,31 @@ No badges table. No score table. No streak tracking. CALL balance does all of th
 - Flag mismatches for investigation
 ```
 
-### Leaderboard Cache (Redis)
+### Leaderboard Query
 
+Leaderboard is a direct PostgreSQL query — no Redis cache needed for hackathon:
+
+```sql
+SELECT wallet_address, display_name, avatar_url, cached_call_balance
+FROM users
+ORDER BY CAST(cached_call_balance AS NUMERIC) DESC
+LIMIT 100;
 ```
-leaderboard:global         → top 100 users by CALL balance (TTL: 60s)
-leaderboard:weekly         → top 100 by balance gained this week (TTL: 60s)
-user:{address}:tier        → current tier (TTL: 5min, invalidated on balance change)
-user:{address}:balance     → cached CALL balance (TTL: 30s)
-```
+
+User balance and tier are also queried directly from PostgreSQL.
 
 ## Avatar Storage
 
-MinIO instance on Railway. S3-compatible.
+Railway Storage Buckets (S3-compatible). Bucket egress is free. Service egress is not — use presigned URLs for serving.
 
 ```
 Bucket: criccall-avatars (public read)
-Path:   {wallet_address}.webp
+Path:   {wallet_address}.{ext}
 
 Constraints:
   - Max 2MB
   - PNG, JPG, WebP only
-  - Resized to 256x256 server-side before upload
+  - Uploaded as-is (image resizing is post-hackathon)
   - Overwrite on update (one avatar per user)
 ```
 
@@ -165,9 +169,8 @@ Upload flow:
 ```
 POST /users/me/avatar (multipart form)
   → Validate type + size
-  → Resize to 256x256 (sharp)
-  → Upload to MinIO as {wallet_address}.webp
-  → Store public URL in users.avatar_url
+  → Upload to S3 bucket as {wallet_address}.{ext}
+  → Store presigned URL in users.avatar_url
   → Return URL
 ```
 
@@ -189,17 +192,16 @@ GET    /users/leaderboard/weekly  ← Top gainers this week
 ## Environment Variables
 
 ```env
-MINIO_ENDPOINT=<railway-minio-url>
-MINIO_PORT=9000
-MINIO_ACCESS_KEY=
-MINIO_SECRET_KEY=
-MINIO_BUCKET=criccall-avatars
-MINIO_USE_SSL=true
+S3_BUCKET=criccall-avatars
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_ENDPOINT=<railway-storage-url>
+S3_REGION=us-east-1
 ```
 
 ## Dependencies
 
-- `@nestjs/typeorm` + `pg` — PostgreSQL
-- `@aws-sdk/client-s3` — MinIO (S3-compatible)
-- `sharp` — image resizing
-- `node-casbin` — role enforcement
+- `prisma` + `@prisma/client` — PostgreSQL on Railway
+- `@aws-sdk/client-s3` — Railway Storage Buckets (S3-compatible)
+- `@aws-sdk/s3-presigned-post` — presigned upload URLs
+- `@aws-sdk/s3-request-presigner` — presigned download URLs
