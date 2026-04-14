@@ -642,19 +642,19 @@ export default function Home() {
           <p className="text-sm font-black text-slate-500 uppercase tracking-widest mb-10">
             Trusted by leading brands
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20">
             {brandLogos.map((brand) => (
               <motion.div
                 key={brand.name}
-                whileHover={{ scale: 1.1 }}
-                className="grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all cursor-default"
+                whileHover={{ scale: 1.08 }}
+                className="transition-transform cursor-default"
               >
                 <Image
                   src={brand.image}
                   alt={brand.name}
-                  width={80}
-                  height={40}
-                  className="h-10 w-auto object-contain"
+                  width={120}
+                  height={60}
+                  className="h-14 w-auto object-contain"
                 />
               </motion.div>
             ))}

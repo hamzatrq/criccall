@@ -25,7 +25,7 @@ import {
   LogIn,
   AlertCircle,
 } from "lucide-react";
-import { usePredict } from "@/hooks/use-contracts";
+import { usePredict, useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -94,7 +94,8 @@ export default function MarketDetailPage() {
     ? Math.round((amount / selectedPool) * totalPrizeNum)
     : 0;
 
-  const maxBalance = 1000; // default max until on-chain balance is available
+  const { data: onChainBalance } = useCallBalance();
+  const maxBalance = onChainBalance ? Math.floor(Number(formatCallBalance(onChainBalance as bigint))) : 100;
 
   const handlePredict = () => {
     const onChainId = (market as any).onChainId;

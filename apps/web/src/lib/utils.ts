@@ -83,3 +83,35 @@ export function timeUntil(dateStr: string): string {
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
 }
+
+export function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+export function getTierLabel(tier: string): string {
+  const labels: Record<string, string> = {
+    new_fan: "New Fan",
+    casual: "Casual Fan",
+    dedicated: "Dedicated Fan",
+    expert: "Expert",
+    superforecaster: "Superforecaster",
+  };
+  return labels[tier] || tier;
+}
+
+export function getTierColor(tier: string): string {
+  const colors: Record<string, string> = {
+    new_fan: "#6B7280",
+    casual: "#16A34A",
+    dedicated: "#2563EB",
+    expert: "#9333EA",
+    superforecaster: "#D97706",
+  };
+  return colors[tier] || "#6B7280";
+}

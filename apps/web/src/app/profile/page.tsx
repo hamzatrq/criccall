@@ -488,7 +488,7 @@ export default function ProfilePage() {
                     <Copy className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">Connected via MetaMask</p>
+                <p className="text-[10px] text-slate-500 mt-1">Connected wallet</p>
               </div>
 
               {/* Save */}
