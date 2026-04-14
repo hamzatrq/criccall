@@ -15,17 +15,19 @@ import {
   Trophy,
   Users,
   Clock,
-  ChevronLeft,
+  ArrowLeft,
   Info,
   TrendingUp,
-  Shield,
+  ShieldCheck,
+  CheckCircle,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function MarketDetailPage() {
   const params = useParams();
   const market = markets.find((m) => m.id === Number(params.id));
-  const [selectedPosition, setSelectedPosition] = useState<"yes" | "no" | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
   const [showConfirm, setShowConfirm] = useState(false);
   const [predicted, setPredicted] = useState(false);
@@ -41,402 +43,497 @@ export default function MarketDetailPage() {
   const yesPercent = getYesPercentage(market);
   const noPercent = 100 - yesPercent;
   const isLive = market.match.status === "live";
+  const isUpcoming = market.match.status === "upcoming";
   const isResolved = market.state === "resolved";
   const titleSponsor = market.sponsors.find((s) => s.tier === "title");
+  const goldSponsor = market.sponsors.find((s) => s.tier === "gold");
+  const platformSponsor = market.sponsors.find((s) => s.tier === "sponsor");
+
+  const estimatedReturn = Math.round(
+    amount * (100 / (selectedPosition === "yes" ? yesPercent : noPercent))
+  );
+  const estimatedPKR = Math.round(
+    (amount /
+      (selectedPosition === "yes" ? market.yesPool : market.noPool)) *
+      market.totalPrize
+  );
 
   const handlePredict = () => {
     setPredicted(true);
     setShowConfirm(false);
   };
 
+  const quickAmounts = [25, 50, 75, 100];
+
   return (
-    <div className="relative mx-auto max-w-3xl px-4 py-6">
-      {/* Back button */}
-      <Link
-        href="/markets"
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6"
+    <div className="max-w-5xl mx-auto px-4 py-6 pb-28">
+      {/* Match Info Card */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8"
       >
-        <ChevronLeft className="w-4 h-4" />
-        Back to Markets
-      </Link>
-
-      {/* Market Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm p-6 md:p-8 mb-6">
-        {isLive && (
-          <div className="absolute inset-0 bg-gradient-to-b from-green-50 via-transparent to-transparent pointer-events-none" />
-        )}
-
-        {/* Sponsor + Status */}
-        <div className="flex items-center justify-between mb-4 relative">
-          {titleSponsor && (
-            <span
-              className="text-xs uppercase tracking-[0.2em] font-medium"
-              style={{ color: titleSponsor.bannerColor }}
-            >
-              {titleSponsor.name} Presents
-            </span>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">
-              {market.match.tournament} · {market.match.matchType}
-            </span>
+        <div className="p-4 md:p-6">
+          {/* Top Row Labels */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              {titleSponsor && (
+                <span className="bg-green-700/10 text-green-700 text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">
+                  {titleSponsor.name} Presents
+                </span>
+              )}
+              <span className="text-slate-500 text-xs font-medium uppercase tracking-tight">
+                {market.match.tournament} {market.match.matchType}
+              </span>
+            </div>
             {isLive && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50">
-                <span className="relative flex h-2 w-2">
+              <div className="flex items-center gap-1 bg-red-500/10 text-red-600 px-2 py-0.5 rounded-full">
+                <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
                 </span>
-                <span className="text-[10px] font-bold uppercase text-red-600">
-                  Live
-                </span>
+                <span className="text-[10px] font-bold">LIVE</span>
               </div>
             )}
+            {isUpcoming && (
+              <span className="text-xs font-medium text-slate-500">
+                Starts {timeUntil(market.match.startTime)}
+              </span>
+            )}
           </div>
-        </div>
 
-        {/* Teams */}
-        <div className="flex items-center justify-center gap-8 md:gap-16 mb-6 relative">
-          <div className="text-center">
-            <span className="text-4xl md:text-6xl block mb-2">
-              {market.match.teamA.flag}
-            </span>
-            <p className="text-lg md:text-xl font-bold text-slate-900">
-              {market.match.teamA.name}
-            </p>
-            {market.match.score?.teamA && (
-              <p className="text-base font-mono mt-1">
-                <span className="font-bold">{market.match.score.teamA}</span>
-                {market.match.score.batting === "teamA" && (
-                  <span className="text-green-600 text-sm ml-1">
-                    ({market.match.score.overs})
-                  </span>
+          {/* Match Info - Teams */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
+            {/* Team A */}
+            <div className="flex flex-1 items-center justify-end gap-4 md:gap-6 w-full md:w-auto">
+              <div className="text-right">
+                <h2 className="text-xl font-black text-slate-900 uppercase">
+                  {market.match.teamA.name}
+                </h2>
+                {market.match.score?.batting === "teamA" && (
+                  <p className="text-sm text-slate-500 font-medium">BATTING</p>
                 )}
-              </p>
-            )}
-          </div>
-          <div className="w-10 h-10 rounded-full border-2 border-slate-200 flex items-center justify-center">
-            <span className="text-xs font-bold text-slate-500">VS</span>
-          </div>
-          <div className="text-center">
-            <span className="text-4xl md:text-6xl block mb-2">
-              {market.match.teamB.flag}
-            </span>
-            <p className="text-lg md:text-xl font-bold text-slate-900">
-              {market.match.teamB.name}
-            </p>
-            {market.match.score?.teamB && (
-              <p className="text-base font-mono mt-1">{market.match.score.teamB}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Question */}
-        <h1 className="text-center text-2xl md:text-3xl font-bold mb-6 text-slate-900">
-          {market.question}
-        </h1>
-
-        {/* Probability Bar */}
-        <div className="max-w-lg mx-auto mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-lg font-bold text-green-600">
-              YES {yesPercent}%
-            </span>
-            <span className="text-lg font-bold text-red-600">
-              {noPercent}% NO
-            </span>
-          </div>
-          <div className="relative h-5 rounded-full overflow-hidden bg-slate-50">
-            <motion.div
-              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-green-500 to-green-600"
-              initial={{ width: 0 }}
-              animate={{ width: `${yesPercent}%` }}
-              transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.3 }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-green-400/40 rounded-full" />
-            </motion.div>
-            <motion.div
-              className="absolute right-0 top-0 h-full rounded-full bg-gradient-to-l from-red-500 to-red-600"
-              initial={{ width: 0 }}
-              animate={{ width: `${noPercent}%` }}
-              transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.3 }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-red-400/40 rounded-full" />
-            </motion.div>
-          </div>
-          <div className="flex items-center justify-between mt-1.5 text-xs text-slate-500 font-mono">
-            <span>{formatCALL(market.yesPool)} CALL</span>
-            <span>{formatCALL(market.noPool)} CALL</span>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center justify-center gap-6 text-sm text-slate-500">
-          <div className="flex items-center gap-1.5 text-amber-600">
-            <Trophy className="w-4 h-4" />
-            <span className="font-bold">{formatPKR(market.totalPrize)}</span>
-          </div>
-          <div className="w-px h-4 bg-slate-200" />
-          <div className="flex items-center gap-1.5">
-            <Users className="w-4 h-4" />
-            <span className="font-mono">{formatCALL(market.totalPredictors)}</span>
-          </div>
-          {!isResolved && (
-            <>
-              <div className="w-px h-4 bg-slate-200" />
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                <span>Locks {timeUntil(market.lockTime)}</span>
+                {market.match.score?.batting === "teamB" && (
+                  <p className="text-sm text-slate-500 font-medium">BOWLING</p>
+                )}
               </div>
-            </>
-          )}
-        </div>
-      </div>
+              <span className="text-5xl">{market.match.teamA.flag}</span>
+            </div>
 
-      {/* Prediction Panel */}
-      {!isResolved && !predicted && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 mb-6"
-        >
-          <h2 className="text-lg font-bold mb-4 text-slate-900">Make Your Prediction</h2>
+            {/* VS + Score */}
+            <div className="flex flex-col items-center">
+              <div className="text-green-700 font-black text-2xl tracking-tighter italic px-4">
+                VS
+              </div>
+              {market.match.score?.teamA && (
+                <div className="mt-2 text-center">
+                  <span className="text-3xl font-black tracking-tighter text-slate-900">
+                    {market.match.score.teamA}
+                  </span>
+                  {market.match.score.overs && (
+                    <span className="text-slate-500 text-sm font-semibold ml-1">
+                      ({market.match.score.overs})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
-          {/* Position Selection */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setSelectedPosition("yes")}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                selectedPosition === "yes"
-                  ? "border-green-200 bg-green-50 shadow-md hover:shadow-lg transition-shadow"
-                  : "border-slate-200 hover:border-green-300"
-              }`}
-            >
-              <p className="text-2xl font-bold text-green-600 mb-1">YES</p>
-              <p className="text-sm text-slate-500">{yesPercent}% chance</p>
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setSelectedPosition("no")}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                selectedPosition === "no"
-                  ? "border-red-200 bg-red-50 shadow-md hover:shadow-lg transition-shadow"
-                  : "border-slate-200 hover:border-red-300"
-              }`}
-            >
-              <p className="text-2xl font-bold text-red-600 mb-1">NO</p>
-              <p className="text-sm text-slate-500">{noPercent}% chance</p>
-            </motion.button>
+            {/* Team B */}
+            <div className="flex flex-1 items-center justify-start gap-4 md:gap-6 w-full md:w-auto">
+              <span className="text-5xl">{market.match.teamB.flag}</span>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 uppercase">
+                  {market.match.teamB.name}
+                </h2>
+                {market.match.score?.batting === "teamB" && (
+                  <p className="text-sm text-slate-500 font-medium">BATTING</p>
+                )}
+                {market.match.score?.batting === "teamA" && (
+                  <p className="text-sm text-slate-500 font-medium">BOWLING</p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Amount Slider */}
-          <AnimatePresence>
-            {selectedPosition && (
+          {/* Market Question */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              {market.question}
+            </h1>
+          </div>
+
+          {/* Probability Bar */}
+          <div className="mb-8">
+            <div className="h-4 w-full bg-slate-100 rounded-full flex overflow-hidden">
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-500">Amount</span>
-                    <span className="text-sm font-mono font-bold">
-                      {amount} <span className="text-slate-500">CALL</span>
-                    </span>
+                className="bg-green-700 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${yesPercent}%` }}
+                transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.3 }}
+              />
+              <motion.div
+                className="bg-red-600 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${noPercent}%` }}
+                transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.3 }}
+              />
+            </div>
+            <div className="flex justify-between mt-2 font-black text-sm">
+              <div className="flex items-center gap-2 text-green-700">
+                <span>YES</span>
+                <span>{yesPercent}%</span>
+              </div>
+              <div className="flex items-center gap-2 text-red-600">
+                <span>{noPercent}%</span>
+                <span>NO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-100">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 text-amber-600 mb-1">
+                <Trophy className="w-4 h-4" />
+                <span className="font-bold text-sm">{formatPKR(market.totalPrize)}</span>
+              </div>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+                Prize Pool
+              </span>
+            </div>
+            <div className="flex flex-col items-center border-x border-slate-100 px-4">
+              <div className="flex items-center gap-1.5 text-slate-900 mb-1">
+                <Users className="w-4 h-4" />
+                <span className="font-bold text-sm">
+                  {formatCALL(market.totalPredictors)}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+                Predictions
+              </span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 text-slate-900 mb-1">
+                <Clock className="w-4 h-4" />
+                <span className="font-bold text-sm">{timeUntil(market.lockTime)}</span>
+              </div>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+                Locks In
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Two Column Layout: Prediction Panel + Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* LEFT: Prediction Panel (2/3 width) */}
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6"
+        >
+          {!isResolved && !predicted && (
+            <>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-green-700 flex items-center justify-center">
+                  <Star className="w-3.5 h-3.5 text-white fill-white" />
+                </span>
+                Make Your Prediction
+              </h3>
+
+              {/* YES / NO Selection Cards */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSelectedPosition("yes")}
+                  className={`relative p-6 rounded-xl border-2 text-center transition-all ${
+                    selectedPosition === "yes"
+                      ? "border-green-700 bg-green-700/5"
+                      : "border-slate-200 hover:border-green-700/30 hover:bg-green-700/5"
+                  }`}
+                >
+                  {selectedPosition === "yes" && (
+                    <div className="absolute top-2 right-2 text-green-700">
+                      <CheckCircle className="w-5 h-5 fill-green-700 text-white" />
+                    </div>
+                  )}
+                  <div
+                    className={`font-black text-2xl mb-1 italic ${
+                      selectedPosition === "yes" ? "text-green-700" : "text-green-700/60"
+                    }`}
+                  >
+                    YES
                   </div>
+                  <div
+                    className={`font-semibold text-sm ${
+                      selectedPosition === "yes" ? "text-green-700" : "text-slate-500"
+                    }`}
+                  >
+                    {yesPercent}% chance
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSelectedPosition("no")}
+                  className={`relative p-6 rounded-xl border-2 text-center transition-all ${
+                    selectedPosition === "no"
+                      ? "border-red-600 bg-red-600/5"
+                      : "border-slate-200 hover:border-red-600/30 hover:bg-red-600/5"
+                  }`}
+                >
+                  {selectedPosition === "no" && (
+                    <div className="absolute top-2 right-2 text-red-600">
+                      <CheckCircle className="w-5 h-5 fill-red-600 text-white" />
+                    </div>
+                  )}
+                  <div
+                    className={`font-black text-2xl mb-1 italic ${
+                      selectedPosition === "no" ? "text-red-600" : "text-red-600/60"
+                    }`}
+                  >
+                    NO
+                  </div>
+                  <div
+                    className={`font-semibold text-sm ${
+                      selectedPosition === "no" ? "text-red-600" : "text-slate-500"
+                    }`}
+                  >
+                    {noPercent}% chance
+                  </div>
+                </motion.button>
+              </div>
+
+              {/* Amount Section */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-sm text-slate-900 uppercase tracking-wide">
+                    Prediction Amount
+                  </label>
+                  <span className="text-green-700 font-black text-lg">
+                    {amount} CALL
+                  </span>
+                </div>
+
+                {/* Slider */}
+                <div className="relative w-full">
                   <input
                     type="range"
                     min={10}
                     max={currentUser.callBalance}
-                    step={10}
+                    step={1}
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none bg-slate-100 accent-green-600 cursor-pointer"
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-700"
                   />
-                  <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+                  <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-bold">
                     <span>10 CALL</span>
                     <span>{formatCALL(currentUser.callBalance)} CALL</span>
                   </div>
                 </div>
 
-                {/* Quick amounts */}
-                <div className="flex gap-2 mb-6">
-                  {[25, 50, 75, 100].map((q) => (
+                {/* Quick Amount Buttons */}
+                <div className="grid grid-cols-4 gap-2">
+                  {quickAmounts.map((q) => (
                     <button
                       key={q}
                       onClick={() => setAmount(Math.min(q, currentUser.callBalance))}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`py-2 rounded-lg text-xs font-bold transition-colors ${
                         amount === q
-                          ? "bg-slate-200 text-slate-900"
-                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                          ? "bg-green-700 text-white ring-2 ring-green-700/20"
+                          : "bg-slate-100 border border-slate-200 hover:bg-slate-200"
                       }`}
                     >
                       {q}
                     </button>
                   ))}
                 </div>
+              </div>
 
-                {/* Potential return info */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-slate-900">If you win</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">CALL return (est.)</span>
-                    <span className="font-mono font-bold text-green-600">
-                      ~{Math.round(amount * (100 / (selectedPosition === "yes" ? yesPercent : noPercent)))} CALL
+              {/* Estimated Return */}
+              <div className="mt-8 p-4 bg-green-50 rounded-xl border border-green-200/50 flex items-start gap-4">
+                <Info className="w-5 h-5 text-green-700 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-900 leading-tight">
+                    Estimated Return:{" "}
+                    <span className="font-bold">
+                      {estimatedReturn.toFixed(1)} CALL
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-slate-500">PKR prize share (est.)</span>
-                    <span className="font-mono font-bold text-amber-600">
-                      ~{formatPKR(Math.round((amount / (selectedPosition === "yes" ? market.yesPool : market.noPool)) * market.totalPrize))}
+                  </p>
+                  <p className="text-xs text-green-800/80 mt-1 italic">
+                    Based on current pool, your estimated PKR share:{" "}
+                    <span className="font-bold text-green-700">
+                      Rs. {estimatedPKR.toLocaleString("en-PK")}.00
                     </span>
-                  </div>
+                  </p>
                 </div>
+              </div>
 
-                {/* Confirm button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handlePredict}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                    selectedPosition === "yes"
-                      ? "bg-green-600 text-white shadow-md hover:shadow-lg transition-shadow"
-                      : "bg-red-600 text-white shadow-md hover:shadow-lg transition-shadow"
-                  }`}
+              {/* Predict Button */}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePredict}
+                className="w-full mt-8 bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg shadow-green-700/20 transition-all flex items-center justify-center gap-2 group"
+              >
+                <span>
+                  Predict {selectedPosition.toUpperCase()} with {amount} CALL
+                </span>
+                <TrendingUp className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </motion.button>
+            </>
+          )}
+
+          {/* Predicted Confirmation */}
+          <AnimatePresence>
+            {predicted && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-8"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                  className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center"
                 >
-                  Predict {selectedPosition?.toUpperCase()} with {amount} CALL
-                </motion.button>
-
-                <p className="text-center text-[10px] text-slate-500 mt-3">
-                  <Shield className="w-3 h-3 inline mr-1" />
-                  CALL tokens have zero monetary value. This is not gambling.
+                  <span className="text-3xl">{"\u{1F3CF}"}</span>
+                </motion.div>
+                <h3 className="text-xl font-bold mb-2 text-green-700">
+                  You&apos;re in!
+                </h3>
+                <p className="text-sm text-slate-500">
+                  {amount} CALL on {selectedPosition.toUpperCase()}. Good luck!
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
-      )}
 
-      {/* Predicted confirmation */}
-      <AnimatePresence>
-        {predicted && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border-2 border-green-200 bg-green-50 p-6 mb-6 text-center"
-          >
+          {/* Resolved State */}
+          {isResolved && !predicted && (
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-              className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={`text-center py-8 ${
+                market.resolvedOutcome === "yes" ? "text-green-700" : "text-red-600"
+              }`}
             >
-              <span className="text-3xl">{"\u{1F3CF}"}</span>
+              <p className="text-sm uppercase tracking-wider text-slate-500 mb-2">
+                Resolved
+              </p>
+              <p className="text-2xl font-bold">
+                {market.resolvedOutcome === "yes" ? "YES won" : "NO won"}
+              </p>
             </motion.div>
-            <h3 className="text-xl font-bold mb-2 text-green-600">You&apos;re in!</h3>
-            <p className="text-sm text-slate-500">
-              {amount} CALL on {selectedPosition?.toUpperCase()}. Good luck!
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </motion.section>
 
-      {/* Resolved state */}
-      {isResolved && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className={`rounded-2xl border-2 p-6 mb-6 text-center ${
-            market.resolvedOutcome === "yes"
-              ? "border-green-200 bg-green-50"
-              : "border-red-200 bg-red-50"
-          }`}
+        {/* RIGHT: Sidebar */}
+        <motion.aside
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="space-y-6"
         >
-          <p className="text-sm uppercase tracking-wider text-slate-500 mb-2">
-            Resolved
-          </p>
-          <p className="text-2xl font-bold">
-            {market.resolvedOutcome === "yes" ? (
-              <span className="text-green-600">YES won</span>
-            ) : (
-              <span className="text-red-600">NO won</span>
-            )}
-          </p>
-        </motion.div>
-      )}
+          {/* Prize Pool Highlight Card */}
+          <div className="bg-gradient-to-br from-green-700 to-green-900 p-6 rounded-xl shadow-lg text-white">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
+                Current Prize Pool
+              </span>
+              <Trophy className="w-5 h-5 text-white/80" />
+            </div>
+            <div className="text-3xl font-black mb-1 tracking-tight">
+              Rs. {market.totalPrize.toLocaleString("en-PK")}
+            </div>
+            <div className="text-xs text-white/70 font-medium">
+              Distributed among winning predictions
+            </div>
+          </div>
 
-      {/* Sponsors Section */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 mb-6">
-        <h3 className="text-sm font-semibold mb-4 text-slate-900">Sponsors</h3>
-        <div className="space-y-3">
-          {market.sponsors
-            .sort((a, b) => b.prizeAmount - a.prizeAmount)
-            .map((s) => (
-              <div
-                key={s.name}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold"
-                    style={{
-                      backgroundColor: s.bannerColor + "20",
-                      color: s.bannerColor,
-                    }}
-                  >
-                    {s.logo}
+          {/* Partners & Sponsors */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">
+              Partners & Sponsors
+            </h3>
+            <div className="space-y-6">
+              {/* Title Sponsor */}
+              {titleSponsor && (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: titleSponsor.bannerColor }}
+                    >
+                      {titleSponsor.logo}
+                    </span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{s.name}</p>
-                    <p
-                      className="text-[10px] uppercase tracking-wider font-medium"
-                      style={{ color: s.tier === "title" ? "#d97706" : s.tier === "gold" ? "#2563eb" : "#6B7280" }}
-                    >
-                      {s.tier} sponsor
+                    <p className="text-xs font-black text-green-700">TITLE SPONSOR</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {titleSponsor.name} Pakistan
                     </p>
                   </div>
                 </div>
-                <p className="font-mono font-bold text-sm text-amber-600">
-                  {formatPKR(s.prizeAmount)}
-                </p>
-              </div>
-            ))}
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
-          <span className="text-sm text-slate-500">Total Prize Pool</span>
-          <span className="font-mono font-bold text-amber-600">
-            {formatPKR(market.totalPrize)}
-          </span>
-        </div>
-      </div>
+              )}
 
-      {/* Info */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Info className="w-4 h-4 text-slate-500" />
-          <h3 className="text-sm font-semibold text-slate-900">How it works</h3>
-        </div>
-        <ul className="space-y-2 text-sm text-slate-500">
-          <li className="flex items-start gap-2">
-            <span className="text-green-600 mt-0.5">1.</span>
-            Spend CALL tokens on YES or NO
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-green-600 mt-0.5">2.</span>
-            If you&apos;re right, you win CALL from the losing pool (proportional to your bet)
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-green-600 mt-0.5">3.</span>
-            All correct predictors also share the PKR prize pool
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-green-600 mt-0.5">4.</span>
-            Results verified on-chain via WireScan
-          </li>
-        </ul>
+              {/* Gold Sponsor */}
+              {goldSponsor && (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: goldSponsor.bannerColor }}
+                    >
+                      {goldSponsor.logo}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-amber-600">GOLD SPONSOR</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {goldSponsor.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Platform */}
+              {platformSponsor && (
+                <div className="flex items-center gap-4 opacity-80">
+                  <div className="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center p-2">
+                    <span className="text-white font-black text-xs">
+                      {platformSponsor.logo}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-500">PLATFORM</p>
+                    <p className="text-sm font-bold text-slate-900">CricCall App</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Shariah Compliance Note */}
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex gap-3">
+              <ShieldCheck className="w-5 h-5 text-green-700 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-slate-500">
+                <span className="font-bold text-slate-900">
+                  Shariah Compliant:
+                </span>{" "}
+                This platform operates on a tournament participation model where
+                entry is based on skill-based prediction points. No monetary
+                gambling involved. Prizes are sponsored by brand partners.
+              </p>
+            </div>
+          </div>
+        </motion.aside>
       </div>
     </div>
   );

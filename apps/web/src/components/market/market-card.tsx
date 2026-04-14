@@ -20,178 +20,94 @@ export function MarketCard({ market, featured = false }: MarketCardProps) {
   return (
     <Link href={`/markets/${market.id}`}>
       <motion.div
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={{ y: -3 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow ${
-          featured ? "p-6" : "p-4"
-        }`}
+        className={`rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden ${featured ? "p-5" : "p-4"}`}
       >
-        {/* Subtle highlight for live matches */}
-        {isLive && (
-          <div className="absolute inset-0 bg-gradient-to-b from-green-50 via-transparent to-transparent pointer-events-none" />
-        )}
-
-        {/* Top row: Tournament + Status */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            {titleSponsor && (
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
-                {titleSponsor.name} Presents
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500">
-              {market.match.tournament} · {market.match.matchType}
-            </span>
+        {/* Top row */}
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+            {titleSponsor ? `${titleSponsor.name} Presents` : market.match.tournament}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-400">{market.match.matchType}</span>
             {isLive && (
-              <div className="flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
-                </span>
-                <span className="text-[10px] font-bold uppercase text-red-600">
-                  Live
-                </span>
-              </div>
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-[9px] font-bold text-red-600 uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                Live
+              </span>
             )}
             {isResolved && (
-              <span className="text-[10px] font-bold uppercase text-green-600">
-                Resolved
-              </span>
+              <span className="px-1.5 py-0.5 rounded bg-green-50 text-[9px] font-bold text-green-700 uppercase">Done</span>
             )}
           </div>
         </div>
 
         {/* Teams */}
-        <div className={`flex items-center justify-center gap-4 ${featured ? "mb-4" : "mb-3"}`}>
-          <div className="flex items-center gap-2">
-            <span className={featured ? "text-3xl" : "text-xl"}>
-              {market.match.teamA.flag}
-            </span>
-            <div className="text-right">
-              <p className={`font-bold text-slate-900 ${featured ? "text-lg" : "text-sm"}`}>
-                {market.match.teamA.shortName}
-              </p>
-              {market.match.score?.teamA && (
-                <p className="text-xs font-mono text-slate-500">
-                  {market.match.score.teamA}
-                  {market.match.score.batting === "teamA" && (
-                    <span className="text-green-600">
-                      {" "}
-                      ({market.match.score.overs})
-                    </span>
-                  )}
-                </p>
-              )}
-            </div>
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg">{market.match.teamA.flag}</span>
+            <span className="text-sm font-semibold text-slate-800">{market.match.teamA.shortName}</span>
+            {market.match.score?.teamA && (
+              <span className="text-xs font-mono text-slate-500">{market.match.score.teamA}</span>
+            )}
           </div>
-
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-            vs
-          </span>
-
-          <div className="flex items-center gap-2">
-            <div className="text-left">
-              <p className={`font-bold text-slate-900 ${featured ? "text-lg" : "text-sm"}`}>
-                {market.match.teamB.shortName}
-              </p>
-              {market.match.score?.teamB && (
-                <p className="text-xs font-mono text-slate-500">
-                  {market.match.score.teamB}
-                </p>
-              )}
-            </div>
-            <span className={featured ? "text-3xl" : "text-xl"}>
-              {market.match.teamB.flag}
-            </span>
+          <span className="text-[10px] text-slate-400 font-medium">vs</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-slate-800">{market.match.teamB.shortName}</span>
+            <span className="text-lg">{market.match.teamB.flag}</span>
           </div>
         </div>
 
         {/* Question */}
-        <p
-          className={`text-center font-semibold text-slate-900 mb-4 ${
-            featured ? "text-lg" : "text-sm"
-          }`}
-        >
-          {market.question}
-        </p>
+        <p className="text-center text-sm font-semibold text-slate-900 mb-3">{market.question}</p>
 
         {/* Probability Bar */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-bold text-green-600">
-              YES {yesPercent}%
-            </span>
-            <span className="text-sm font-bold text-red-600">
-              {noPercent}% NO
-            </span>
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold text-green-700">YES {yesPercent}%</span>
+            <span className="text-xs font-bold text-red-600">{noPercent}% NO</span>
           </div>
-          <div className="relative h-3 rounded-full overflow-hidden bg-slate-100">
+          <div className="h-2 rounded-full overflow-hidden bg-slate-100 flex">
             <motion.div
-              className="absolute left-0 top-0 h-full rounded-full bg-green-500"
+              className="h-full bg-green-500 rounded-l-full"
               initial={{ width: 0 }}
               animate={{ width: `${yesPercent}%` }}
-              transition={{
-                type: "spring",
-                stiffness: 100,
-                damping: 20,
-                delay: 0.1,
-              }}
+              transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
             />
             <motion.div
-              className="absolute right-0 top-0 h-full rounded-full bg-red-500"
+              className="h-full bg-red-500 rounded-r-full"
               initial={{ width: 0 }}
               animate={{ width: `${noPercent}%` }}
-              transition={{
-                type: "spring",
-                stiffness: 100,
-                damping: 20,
-                delay: 0.1,
-              }}
+              transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
             />
           </div>
         </div>
 
-        {/* Prize + Stats */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-amber-600">
-            <Trophy className="w-3.5 h-3.5" />
-            <span className="text-sm font-bold">{formatPKR(market.totalPrize)}</span>
+        {/* Stats row */}
+        <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <div className="flex items-center gap-1 text-amber-600 font-semibold">
+            <Trophy className="w-3 h-3" />
+            {formatPKR(market.totalPrize)}
           </div>
-          <div className="flex items-center gap-3 text-slate-500">
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              <span className="text-xs font-mono">
-                {formatCALL(market.totalPredictors)}
-              </span>
-            </div>
-            {!isResolved && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span className="text-xs">
-                  {timeUntil(market.lockTime)}
-                </span>
-              </div>
-            )}
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-0.5"><Users className="w-3 h-3" /> {formatCALL(market.totalPredictors)}</span>
+            {!isResolved && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" /> {timeUntil(market.lockTime)}</span>}
           </div>
         </div>
 
-        {/* Sponsor bar */}
+        {/* Sponsors */}
         {market.sponsors.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200">
+          <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">
+            <span className="text-[9px] text-slate-400">Sponsored by</span>
             {market.sponsors.map((s) => (
-              <div
+              <span
                 key={s.name}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{
-                  backgroundColor: s.bannerColor + "15",
-                  color: s.bannerColor,
-                }}
+                className="px-1.5 py-0.5 rounded text-[9px] font-medium"
+                style={{ backgroundColor: s.bannerColor + "12", color: s.bannerColor }}
               >
-                {s.logo}
-              </div>
+                {s.name}
+              </span>
             ))}
           </div>
         )}

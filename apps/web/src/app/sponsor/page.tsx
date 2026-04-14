@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { markets, formatPKR, formatCALL } from "@/data/mock";
 import {
   Store,
@@ -14,6 +14,9 @@ import {
   CheckCircle,
   Clock,
   Image as ImageIcon,
+  Coins,
+  Gift,
+  Target,
 } from "lucide-react";
 
 export default function SponsorPage() {
@@ -26,322 +29,375 @@ export default function SponsorPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="flex items-center gap-3 mb-2">
-        <Store className="w-6 h-6 text-blue-600" />
-        <h1 className="text-3xl font-bold">Sponsor Dashboard</h1>
-      </div>
-      <p className="text-slate-500 text-sm mb-8">
-        Manage campaigns, deals, and track analytics.
-      </p>
-
-      {/* Stats overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Active Campaigns", value: "3", color: "#2563eb" },
-          { label: "Total Deposited", value: "Rs. 12.5 Lac", color: "#d97706" },
-          { label: "Users Reached", value: "8,421", color: "#16a34a" },
-          { label: "Deal Redemptions", value: "3,216", color: "#9333ea" },
-        ].map((stat) => (
-          <div key={stat.label} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold font-mono" style={{ color: stat.color }}>{stat.value}</p>
+    <div className="min-h-screen bg-slate-50">
+      {/* Page header */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-5xl px-6 py-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Store className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Sponsor Dashboard</h1>
+              <p className="text-slate-500 text-sm">
+                Manage campaigns, deals, and track analytics.
+              </p>
+            </div>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === tab.id ? "text-black" : "text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="sponsorTab"
-                className="absolute inset-0 bg-blue-600 rounded-full"
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
-            )}
-            <tab.icon className="w-4 h-4 relative z-10" />
-            <span className="relative z-10">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* My Campaigns */}
-      {activeTab === "campaigns" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        {/* Stats overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            {
-              market: "PAK vs IND — Will Pakistan score 180+?",
-              deposited: 1050000,
-              tier: "title",
-              winners: 1200,
-              claimed: 840000,
-              impressions: 15000,
-              status: "active",
-            },
-            {
-              market: "AUS vs ENG — Will Australia win?",
-              deposited: 100000,
-              tier: "gold",
-              winners: 0,
-              claimed: 0,
-              impressions: 3200,
-              status: "active",
-            },
-            {
-              market: "SA vs NZ — Will South Africa win?",
-              deposited: 75000,
-              tier: "gold",
-              winners: 450,
-              claimed: 62000,
-              impressions: 8900,
-              status: "resolved",
-            },
-          ].map((campaign, i) => (
+            { label: "Active Campaigns", value: "3", color: "text-blue-600", bg: "bg-blue-50", icon: Target },
+            { label: "Total Deposited", value: "Rs. 12.5 Lac", color: "text-amber-600", bg: "bg-amber-50", icon: Coins },
+            { label: "Users Reached", value: "8,421", color: "text-emerald-600", bg: "bg-emerald-50", icon: Users },
+            { label: "Deal Redemptions", value: "3,216", color: "text-purple-600", bg: "bg-purple-50", icon: Gift },
+          ].map((stat) => (
             <motion.div
-              key={i}
+              key={stat.label}
+              whileHover={{ y: -2 }}
+              className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow text-center"
+            >
+              <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center mx-auto mb-3`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              </div>
+              <p className={`text-2xl font-black font-mono ${stat.color}`}>{stat.value}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "text-white"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              }`}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="sponsorTab"
+                  className="absolute inset-0 bg-blue-600 rounded-full shadow-sm"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+              <tab.icon className="w-4 h-4 relative z-10" />
+              <span className="relative z-10">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {/* ===== My Campaigns ===== */}
+          {activeTab === "campaigns" && (
+            <motion.div
+              key="campaigns"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="rounded-xl bg-white border border-slate-200 shadow-sm p-6"
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="font-bold">{campaign.market}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-                      style={{
-                        color: campaign.tier === "title" ? "#d97706" : "#2563eb",
-                        backgroundColor: (campaign.tier === "title" ? "#d97706" : "#2563eb") + "15",
-                      }}
-                    >
-                      {campaign.tier} sponsor
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        campaign.status === "active"
-                          ? "text-green-600 bg-green-50"
-                          : "text-slate-500 bg-slate-50"
-                      }`}
-                    >
-                      {campaign.status}
+              {[
+                {
+                  market: "PAK vs IND — Will Pakistan score 180+?",
+                  deposited: 1050000,
+                  tier: "title",
+                  winners: 1200,
+                  claimed: 840000,
+                  impressions: 15000,
+                  status: "active",
+                },
+                {
+                  market: "AUS vs ENG — Will Australia win?",
+                  deposited: 100000,
+                  tier: "gold",
+                  winners: 0,
+                  claimed: 0,
+                  impressions: 3200,
+                  status: "active",
+                },
+                {
+                  market: "SA vs NZ — Will South Africa win?",
+                  deposited: 75000,
+                  tier: "gold",
+                  winners: 450,
+                  claimed: 62000,
+                  impressions: 8900,
+                  status: "resolved",
+                },
+              ].map((campaign, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-5">
+                    <div>
+                      <p className="font-black text-slate-900">{campaign.market}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span
+                          className="text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full"
+                          style={{
+                            color: campaign.tier === "title" ? "#d97706" : "#2563eb",
+                            backgroundColor: campaign.tier === "title" ? "#fffbeb" : "#eff6ff",
+                            border: `1px solid ${campaign.tier === "title" ? "#fde68a" : "#bfdbfe"}`,
+                          }}
+                        >
+                          {campaign.tier} sponsor
+                        </span>
+                        <span
+                          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                            campaign.status === "active"
+                              ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
+                              : "text-slate-500 bg-slate-50 border border-slate-200"
+                          }`}
+                        >
+                          {campaign.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deposited</p>
+                      <p className="font-mono font-black text-xl text-amber-600">
+                        {formatPKR(campaign.deposited)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { icon: Users, label: "Winners", value: campaign.winners.toLocaleString(), color: "text-blue-600", bg: "bg-blue-50" },
+                      { icon: CheckCircle, label: "Claimed", value: formatPKR(campaign.claimed), color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { icon: Eye, label: "Impressions", value: campaign.impressions.toLocaleString(), color: "text-purple-600", bg: "bg-purple-50" },
+                      {
+                        icon: TrendingUp,
+                        label: "ROI",
+                        value: campaign.impressions > 0
+                          ? `${(campaign.impressions / (campaign.deposited / 1000)).toFixed(1)}x`
+                          : "---",
+                        color: "text-emerald-600",
+                        bg: "bg-emerald-50",
+                      },
+                    ].map((stat) => (
+                      <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1.5">
+                          <stat.icon className="w-3 h-3 text-slate-400" />
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{stat.label}</span>
+                        </div>
+                        <p className={`font-mono font-black text-sm ${stat.color}`}>{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* ===== My Deals ===== */}
+          {activeTab === "deals" && (
+            <motion.div
+              key="deals"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              {[
+                { title: "20% off any order", minCall: 100, redeemed: 2340, maxRedemptions: 5000, status: "active", expires: "12d" },
+                { title: "Free Zinger with meal", minCall: 500, redeemed: 876, maxRedemptions: 2000, status: "active", expires: "8d" },
+              ].map((deal, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-black text-lg text-slate-900">{deal.title}</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Min {formatCALL(deal.minCall)} CALL · Expires in {deal.expires}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-widest">
+                      {deal.status}
                     </span>
                   </div>
+
+                  {/* Progress bar */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Redemptions</span>
+                      <span className="text-xs font-mono font-bold text-slate-700">
+                        {deal.redeemed.toLocaleString()} / {deal.maxRedemptions.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-2.5 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(deal.redeemed / deal.maxRedemptions) * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Today", value: "74", color: "text-blue-600" },
+                      { label: "Peak Hour", value: "7 PM", color: "text-amber-600" },
+                      { label: "Avg CALL", value: "1,247", color: "text-emerald-600" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{stat.label}</p>
+                        <p className={`font-mono font-black ${stat.color}`}>{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* ===== Create ===== */}
+          {activeTab === "create" && (
+            <motion.div
+              key="create"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid md:grid-cols-2 gap-6"
+            >
+              {/* Sponsor a Market */}
+              <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                    <Coins className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">Sponsor a Market</h3>
+                    <p className="text-sm text-slate-500">
+                      Deposit PKR into an active market as prize money.
+                    </p>
+                  </div>
                 </div>
-                <p className="font-mono font-bold text-xl text-amber-600">
-                  {formatPKR(campaign.deposited)}
-                </p>
+                <div className="space-y-4 mt-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Select Market</label>
+                    <select className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors">
+                      {markets.filter((m) => m.state === "open").map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.match.teamA.shortName} vs {m.match.teamB.shortName} — {m.question}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">PKR Amount</label>
+                    <input
+                      type="number"
+                      placeholder="100000"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Banner Image</label>
+                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer group">
+                      <ImageIcon className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                      <p className="text-sm text-slate-500 group-hover:text-emerald-600 transition-colors">Click to upload (1200x400, max 300KB)</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black shadow-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Deposit PKR & Sponsor
+                  </motion.button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Users className="w-3 h-3 text-slate-500" />
-                    <span className="text-[10px] text-slate-500">Winners</span>
+              {/* Create a Deal */}
+              <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Tag className="w-4 h-4 text-blue-600" />
                   </div>
-                  <p className="font-mono font-bold text-sm">{campaign.winners.toLocaleString()}</p>
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">Create a Brand Deal</h3>
+                    <p className="text-sm text-slate-500">
+                      Offer exclusive perks to users based on CALL balance.
+                    </p>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-1 mb-1">
-                    <CheckCircle className="w-3 h-3 text-slate-500" />
-                    <span className="text-[10px] text-slate-500">Claimed</span>
+                <div className="space-y-4 mt-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Deal Title</label>
+                    <input
+                      type="text"
+                      placeholder="20% off any order"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                    />
                   </div>
-                  <p className="font-mono font-bold text-sm">{formatPKR(campaign.claimed)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Eye className="w-3 h-3 text-slate-500" />
-                    <span className="text-[10px] text-slate-500">Impressions</span>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Description</label>
+                    <textarea
+                      placeholder="Valid on orders above Rs. 500..."
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 resize-none focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                    />
                   </div>
-                  <p className="font-mono font-bold text-sm">{campaign.impressions.toLocaleString()}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-1 mb-1">
-                    <TrendingUp className="w-3 h-3 text-slate-500" />
-                    <span className="text-[10px] text-slate-500">ROI</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Min CALL Required</label>
+                      <input
+                        type="number"
+                        placeholder="500"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Max Redemptions</label>
+                      <input
+                        type="number"
+                        placeholder="5000"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                      />
+                    </div>
                   </div>
-                  <p className="font-mono font-bold text-sm text-green-600">
-                    {campaign.impressions > 0 ? `${(campaign.impressions / (campaign.deposited / 1000)).toFixed(1)}x` : "—"}
-                  </p>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Coupon Code</label>
+                    <input
+                      type="text"
+                      placeholder="CRICCALL20"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                    />
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors"
+                  >
+                    <Tag className="w-4 h-4" />
+                    Create Deal
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
-          ))}
-        </motion.div>
-      )}
-
-      {/* My Deals */}
-      {activeTab === "deals" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          {[
-            { title: "20% off any order", minCall: 100, redeemed: 2340, maxRedemptions: 5000, status: "active", expires: "12d" },
-            { title: "Free Zinger with meal", minCall: 500, redeemed: 876, maxRedemptions: 2000, status: "active", expires: "8d" },
-          ].map((deal, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="rounded-xl bg-white border border-slate-200 shadow-sm p-6"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-bold text-lg">{deal.title}</h3>
-                  <p className="text-xs text-slate-500">
-                    Min {formatCALL(deal.minCall)} CALL · Expires {deal.expires}
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                  {deal.status}
-                </span>
-              </div>
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-slate-500">Redemptions</span>
-                  <span className="text-xs font-mono">
-                    {deal.redeemed.toLocaleString()} / {deal.maxRedemptions.toLocaleString()}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden bg-slate-50">
-                  <motion.div
-                    className="h-full rounded-full bg-blue-600"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(deal.redeemed / deal.maxRedemptions) * 100}%` }}
-                    transition={{ duration: 0.8 }}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-2 rounded-lg bg-slate-50">
-                  <p className="text-xs text-slate-500">Today</p>
-                  <p className="font-mono font-bold">74</p>
-                </div>
-                <div className="p-2 rounded-lg bg-slate-50">
-                  <p className="text-xs text-slate-500">Peak Hour</p>
-                  <p className="font-mono font-bold">7 PM</p>
-                </div>
-                <div className="p-2 rounded-lg bg-slate-50">
-                  <p className="text-xs text-slate-500">Avg CALL</p>
-                  <p className="font-mono font-bold">1,247</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
-
-      {/* Create */}
-      {activeTab === "create" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid md:grid-cols-2 gap-6">
-          {/* Sponsor a Market */}
-          <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-            <h3 className="font-bold text-lg mb-2">Sponsor a Market</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              Deposit PKR into an active market as prize money.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Select Market</label>
-                <select className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900">
-                  <option>PAK vs IND — Will Pakistan score 180+?</option>
-                  <option>PAK vs IND — Will Pakistan win?</option>
-                  <option>AUS vs ENG — Will Australia win?</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">PKR Amount</label>
-                <input
-                  type="number"
-                  placeholder="100000"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Banner Image</label>
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-slate-300 transition-colors cursor-pointer">
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 text-slate-500" />
-                  <p className="text-sm text-slate-500">Click to upload (1200x400, max 300KB)</p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold"
-              >
-                Deposit PKR & Sponsor
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Create a Deal */}
-          <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-            <h3 className="font-bold text-lg mb-2">Create a Brand Deal</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              Offer exclusive perks to users based on CALL balance.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Deal Title</label>
-                <input
-                  type="text"
-                  placeholder="20% off any order"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Description</label>
-                <textarea
-                  placeholder="Valid on orders above Rs. 500..."
-                  rows={2}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Min CALL Required</label>
-                  <input
-                    type="number"
-                    placeholder="500"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Max Redemptions</label>
-                  <input
-                    type="number"
-                    placeholder="5000"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Coupon Code</label>
-                <input
-                  type="text"
-                  placeholder="CRICCALL20"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
-                />
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold"
-              >
-                <Tag className="w-4 h-4 inline mr-2" />
-                Create Deal
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      )}
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

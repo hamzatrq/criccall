@@ -10,15 +10,15 @@ import {
   teams,
 } from "@/data/mock";
 import {
-  Target,
-  TrendingUp,
-  Flame,
-  Trophy,
   Copy,
   Pencil,
   X,
   Camera,
   Check,
+  CheckCircle,
+  XCircle,
+  Wallet,
+  CalendarSync,
 } from "lucide-react";
 
 const tierThresholds = [
@@ -28,12 +28,12 @@ const tierThresholds = [
   { tier: "superforecaster", min: 5000, label: "Superforecaster", color: "#FFD700" },
 ];
 
-const mockPredictions = [
-  { market: "Will Pakistan score 180+?", position: "yes", amount: 50, result: "won", winnings: 85, date: "2h ago" },
-  { market: "Will Australia win?", position: "no", amount: 30, result: "lost", winnings: 0, date: "5h ago" },
-  { market: "Will South Africa win?", position: "yes", amount: 40, result: "won", winnings: 65, date: "1d ago" },
-  { market: "Will it be a draw?", position: "no", amount: 25, result: "won", winnings: 42, date: "2d ago" },
-  { market: "Will England win?", position: "yes", amount: 50, result: "lost", winnings: 0, date: "3d ago" },
+const predictionHistory = [
+  { question: "IND vs AUS: Most Sixes by India?", amount: 25, result: "won" as const, payout: 42.5 },
+  { question: "Babar Azam to score 50+ runs?", amount: 50, result: "lost" as const, payout: -50.0 },
+  { question: "Total Wickets: Over 12.5?", amount: 10, result: "won" as const, payout: 18.0 },
+  { question: "Match Winner: England?", amount: 100, result: "won" as const, payout: 195.0 },
+  { question: "Highest Opening Partnership: RSA?", amount: 30, result: "lost" as const, payout: -30.0 },
 ];
 
 const teamOptions = Object.values(teams);
@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState(currentUser.displayName);
   const [favoriteTeam, setFavoriteTeam] = useState("PAK");
   const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const currentTierIdx = tierThresholds.findIndex((t) => t.tier === currentUser.tier);
   const nextTier = tierThresholds[currentTierIdx + 1];
@@ -59,112 +60,213 @@ export default function ProfilePage() {
     }, 1000);
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(currentUser.address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      {/* Profile Header */}
-      <motion.div
+    <div className="max-w-md mx-auto px-4 pt-4 pb-24 space-y-6">
+      {/* User Header Section */}
+      <motion.section
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 mb-6"
+        className="flex items-start gap-4"
       >
-        <div className="flex items-center gap-4 mb-6">
-          {/* Avatar */}
-          <div className="relative group">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#A855F7] flex items-center justify-center text-xl font-bold text-white">
-              {displayName.slice(0, 2).toUpperCase()}
-            </div>
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full border-4 border-white shadow-sm bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white">
+            {displayName.slice(0, 2).toUpperCase()}
+          </div>
+          <button
+            onClick={() => setEditing(true)}
+            className="absolute bottom-0 right-0 bg-emerald-700 text-white p-1 rounded-full border-2 border-white shadow-md hover:opacity-80 duration-150 flex items-center justify-center"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="flex-1 pt-1">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {displayName}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              {getTierLabel(currentUser.tier)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-2 text-slate-500">
+            <Wallet className="w-3.5 h-3.5" />
+            <code className="text-xs font-mono">{currentUser.address}</code>
             <button
-              onClick={() => setEditing(true)}
-              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleCopy}
+              className="hover:text-emerald-700 transition-colors"
             >
-              <Camera className="w-5 h-5" />
+              {copied ? (
+                <Check className="w-3 h-3 text-emerald-600" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
             </button>
           </div>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900">{displayName}</h1>
-              <button
-                onClick={() => setEditing(true)}
-                className="text-slate-500 hover:text-slate-900 transition-colors"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className="text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-                style={{
-                  color: getTierColor(currentUser.tier),
-                  backgroundColor: getTierColor(currentUser.tier) + "15",
-                }}
-              >
-                {getTierLabel(currentUser.tier)}
-              </span>
-              <span className="text-xs text-slate-500 font-mono">
-                {currentUser.address}
-              </span>
-              <button className="text-slate-500 hover:text-slate-900">
-                <Copy className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
         </div>
+      </motion.section>
 
-        {/* CALL Balance */}
-        <div className="text-center p-6 rounded-xl bg-slate-50 border border-slate-200 mb-6">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">CALL Balance</p>
-          <motion.p
-            className="text-5xl font-bold font-mono text-green-600 tabular-nums"
+      {/* Balance Card */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="bg-slate-50 rounded-xl p-6 shadow-sm border border-slate-200 text-center"
+      >
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+          Available Balance
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <motion.span
+            className="text-4xl font-mono font-bold text-emerald-700"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
           >
             {formatCALL(currentUser.callBalance)}
-          </motion.p>
-          <p className="text-sm text-slate-500 mt-1">CALL</p>
+          </motion.span>
+          <span className="text-sm font-bold text-emerald-800 uppercase tracking-tighter">
+            CALL
+          </span>
         </div>
-
-        {/* Tier Progress */}
         {nextTier && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold" style={{ color: getTierColor(currentUser.tier) }}>
-                {getTierLabel(currentUser.tier)}
-              </span>
-              <span className="text-xs text-slate-500">
-                {formatCALL(nextTier.min - currentUser.callBalance)} CALL to{" "}
-                <span style={{ color: nextTier.color }}>{nextTier.label}</span>
-              </span>
+          <div className="mt-6 space-y-2">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-blue-600">{getTierLabel(currentUser.tier)}</span>
+              <span className="text-purple-600">{nextTier.label}</span>
             </div>
-            <div className="h-3 rounded-full overflow-hidden bg-slate-50">
+            <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
               <motion.div
-                className="h-full rounded-full"
-                style={{ background: `linear-gradient(90deg, ${getTierColor(currentUser.tier)}, ${nextTier.color})` }}
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(progress, 100)}%` }}
                 transition={{ duration: 0.8, delay: 0.3 }}
               />
             </div>
+            <p className="text-[10px] text-slate-500 text-right italic">
+              {Math.round(progress)}% to next tier
+            </p>
           </div>
         )}
+      </motion.section>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { icon: Target, label: "Predictions", value: currentUser.totalPredictions, color: "#3B82F6" },
-            { icon: TrendingUp, label: "Win Rate", value: `${currentUser.winRate}%`, color: "#00FF6A" },
-            { icon: Flame, label: "Correct", value: currentUser.correctPredictions, color: "#FF3B5C" },
-            { icon: Trophy, label: "Rank", value: "#42", color: "#FFD700" },
-          ].map((stat) => (
-            <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-              <stat.icon className="w-4 h-4 mx-auto mb-1" style={{ color: stat.color }} />
-              <p className="text-lg font-bold font-mono text-slate-900">{stat.value}</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">{stat.label}</p>
-            </div>
+      {/* Stats Grid */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 gap-3"
+      >
+        {[
+          { label: "Predictions", value: String(currentUser.totalPredictions), colorClass: "text-slate-900" },
+          { label: "Win Rate", value: `${currentUser.winRate}%`, colorClass: "text-emerald-700" },
+          { label: "Correct", value: String(currentUser.correctPredictions), colorClass: "text-slate-900" },
+          { label: "Rank", value: "#42", colorClass: "text-amber-600" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center"
+          >
+            <span className="text-xs font-medium text-slate-500">{stat.label}</span>
+            <span className={`text-lg font-bold ${stat.colorClass}`}>{stat.value}</span>
+          </div>
+        ))}
+      </motion.section>
+
+      {/* Daily Claim */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-emerald-50 border border-green-200 rounded-xl p-4 flex items-center justify-between shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-emerald-700">
+            <CalendarSync className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-emerald-900 leading-none">
+              Daily CALL Claim
+            </h3>
+            <p className="text-[11px] text-emerald-700/70 mt-1">
+              Ready for collection
+            </p>
+          </div>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 duration-150 transition-all active:scale-95"
+        >
+          Claim 100 CALL
+        </motion.button>
+      </motion.section>
+
+      {/* Prediction History */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="space-y-3 pb-8"
+      >
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            Prediction History
+          </h2>
+          <button className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
+            View All
+          </button>
+        </div>
+        <div className="space-y-2">
+          {predictionHistory.map((pred, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 + i * 0.05 }}
+              className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    pred.result === "won"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {pred.result === "won" ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <XCircle className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-900 line-clamp-1">
+                    {pred.question}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                    Predicted: {pred.amount} CALL
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0 ml-2">
+                <span
+                  className={`text-xs font-bold ${
+                    pred.result === "won" ? "text-emerald-700" : "text-red-600"
+                  }`}
+                >
+                  {pred.payout > 0 ? "+" : ""}
+                  {pred.payout.toFixed(1)}
+                </span>
+              </div>
+            </motion.div>
           ))}
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Edit Profile Modal */}
       <AnimatePresence>
@@ -193,11 +295,11 @@ export default function ProfilePage() {
               {/* Avatar upload */}
               <div className="flex justify-center mb-6">
                 <div className="relative group cursor-pointer">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#A855F7] flex items-center justify-center text-2xl font-bold text-white">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white">
                     {displayName.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="w-6 h-6" />
+                    <Camera className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </div>
@@ -207,21 +309,27 @@ export default function ProfilePage() {
 
               {/* Display Name */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1.5 text-slate-900">Display Name</label>
+                <label className="block text-sm font-medium mb-1.5 text-slate-900">
+                  Display Name
+                </label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   maxLength={20}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200 transition-all"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200 transition-all"
                   placeholder="Enter display name"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">{displayName.length}/20 characters</p>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {displayName.length}/20 characters
+                </p>
               </div>
 
               {/* Favorite Team */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-1.5 text-slate-900">Favorite Team</label>
+                <label className="block text-sm font-medium mb-1.5 text-slate-900">
+                  Favorite Team
+                </label>
                 <div className="grid grid-cols-4 gap-2">
                   {teamOptions.map((team) => (
                     <button
@@ -229,7 +337,7 @@ export default function ProfilePage() {
                       onClick={() => setFavoriteTeam(team.id)}
                       className={`p-2 rounded-lg text-center transition-all ${
                         favoriteTeam === team.id
-                          ? "bg-green-50 border-2 border-green-400"
+                          ? "bg-emerald-50 border-2 border-emerald-400"
                           : "bg-slate-50 border-2 border-transparent hover:bg-slate-100"
                       }`}
                     >
@@ -242,10 +350,17 @@ export default function ProfilePage() {
 
               {/* Wallet (read-only) */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-1.5 text-slate-900">Wallet Address</label>
+                <label className="block text-sm font-medium mb-1.5 text-slate-900">
+                  Wallet Address
+                </label>
                 <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-sm font-mono text-slate-500 flex-1">{currentUser.address}</span>
-                  <button className="text-slate-500 hover:text-slate-900">
+                  <span className="text-sm font-mono text-slate-500 flex-1">
+                    {currentUser.address}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className="text-slate-500 hover:text-slate-900"
+                  >
                     <Copy className="w-4 h-4" />
                   </button>
                 </div>
@@ -258,7 +373,7 @@ export default function ProfilePage() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
                 disabled={saved}
-                className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-emerald-700 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saved ? (
                   <>
@@ -273,70 +388,6 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Daily Claim */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl border border-green-200 bg-green-50 p-6 mb-6"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-lg mb-1 text-slate-900">Daily CALL Claim</h3>
-            <p className="text-sm text-slate-500">100 free CALL tokens every 24 hours</p>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 rounded-xl bg-green-600 text-white font-bold shadow-md hover:shadow-lg transition-shadow"
-          >
-            Claim 100 CALL
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* Prediction History */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6"
-      >
-        <h3 className="font-bold text-lg mb-4 text-slate-900">Prediction History</h3>
-        <div className="space-y-3">
-          {mockPredictions.map((pred, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + i * 0.05 }}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200"
-            >
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold ${
-                  pred.result === "won" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                }`}
-              >
-                {pred.result === "won" ? "W" : "L"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate text-slate-900">{pred.market}</p>
-                <p className="text-xs text-slate-500">
-                  {pred.amount} CALL on {pred.position.toUpperCase()} · {pred.date}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                {pred.result === "won" ? (
-                  <p className="text-sm font-mono font-bold text-green-600">+{pred.winnings} CALL</p>
-                ) : (
-                  <p className="text-sm font-mono font-bold text-red-600">-{pred.amount} CALL</p>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
     </div>
   );
 }
