@@ -37,7 +37,7 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/icon.png" alt="CricCall" width={36} height={36} className="rounded-lg" />
-            <span className="text-2xl font-black text-white tracking-tight">CricCall</span>
+            <span className="text-2xl text-white tracking-tight font-[family-name:var(--font-brand)]">CRICALL</span>
           </Link>
 
           <nav className="hidden md:flex gap-6">

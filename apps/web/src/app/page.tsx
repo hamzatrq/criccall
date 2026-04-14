@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   markets,
   leaderboard,
+  brandLogos,
   formatCALL,
   formatPKR,
   getYesPercentage,
@@ -49,7 +50,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight"
+            className="text-5xl md:text-7xl text-white mb-6 leading-tight font-[family-name:var(--font-brand)]"
           >
             Predict Cricket. <br />
             <span className="text-[#4ade80]">Win Rewards.</span>
@@ -276,10 +277,15 @@ export default function Home() {
                     {liveMarket.sponsors.map((s) => (
                       <div
                         key={s.name}
-                        className="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[9px] font-black text-white"
-                        style={{ backgroundColor: s.bannerColor }}
+                        className="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden bg-white"
                       >
-                        {s.logo}
+                        {s.logoImage ? (
+                          <Image src={s.logoImage} alt={s.name} width={32} height={32} className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-white" style={{ backgroundColor: s.bannerColor }}>
+                            {s.logo}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -298,7 +304,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-black text-slate-900 mb-4"
+              className="text-3xl md:text-4xl text-slate-900 mb-4 font-[family-name:var(--font-brand)]"
             >
               How it Works
             </motion.h2>
@@ -357,7 +363,7 @@ export default function Home() {
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="text-4xl font-black text-slate-900 mb-6 leading-tight"
+              className="text-4xl text-slate-900 mb-6 leading-tight font-[family-name:var(--font-brand)]"
             >
               Professional Prediction, <br /> Built for the Fan.
             </motion.h2>
@@ -443,7 +449,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-3xl font-black text-slate-900"
+                className="text-3xl text-slate-900 font-[family-name:var(--font-brand)]"
               >
                 Weekly Leaderboard
               </motion.h2>
@@ -520,14 +526,21 @@ export default function Home() {
           <p className="text-sm font-black text-slate-500 uppercase tracking-widest mb-10">
             Trusted by leading brands
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-60 grayscale hover:grayscale-0 transition-all">
-            {["PTCL", "Foodpanda", "KFC", "Jazz", "Daraz"].map((brand) => (
-              <span
-                key={brand}
-                className="text-2xl font-black text-slate-400 hover:text-slate-600 transition-colors cursor-default"
+          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
+            {brandLogos.map((brand) => (
+              <motion.div
+                key={brand.name}
+                whileHover={{ scale: 1.1 }}
+                className="grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all cursor-default"
               >
-                {brand}
-              </span>
+                <Image
+                  src={brand.image}
+                  alt={brand.name}
+                  width={80}
+                  height={40}
+                  className="h-10 w-auto object-contain"
+                />
+              </motion.div>
             ))}
           </div>
         </div>
@@ -542,7 +555,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl font-black mb-6"
+              className="text-4xl mb-6 font-[family-name:var(--font-brand)]"
             >
               Ready to make your call?
             </motion.h2>
@@ -560,7 +573,7 @@ export default function Home() {
           <div className="text-center md:text-right">
             <div className="flex items-center justify-center md:justify-end gap-3 mb-4">
               <Image src="/icon.png" alt="CricCall" width={44} height={44} className="rounded-xl" />
-              <span className="text-3xl font-black">CricCall</span>
+              <span className="text-3xl font-[family-name:var(--font-brand)]">CRICALL</span>
             </div>
             <p className="text-emerald-300 font-bold max-w-xs">
               Built for Entangled Hackathon · April 2026 · Powered by WireFluid
