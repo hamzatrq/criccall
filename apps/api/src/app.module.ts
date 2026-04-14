@@ -10,6 +10,8 @@ import { AdminModule } from './admin/admin.module';
 import { PredictionsModule } from './predictions/predictions.module';
 import { MarketsModule } from './markets/markets.module';
 import { OracleModule } from './oracle/oracle.module';
+import { RewardsModule } from './rewards/rewards.module';
+import { DealsModule } from './deals/deals.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { OracleModule } from './oracle/oracle.module';
     PredictionsModule,
     MarketsModule,
     OracleModule,
+    RewardsModule,
+    DealsModule,
   ],
 })
 export class AppModule {}
