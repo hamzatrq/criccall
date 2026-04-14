@@ -1,0 +1,17 @@
+{
+  "name": "criccall",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "dev:web": "turbo dev --filter=web",
+    "dev:api": "turbo dev --filter=api",
+    "test:contracts": "cd packages/contracts && npm test"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "pnpm@10.11.0"
+}
