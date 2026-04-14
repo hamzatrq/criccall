@@ -23,8 +23,9 @@ import {
   CalendarSync,
   Loader2,
   AlertCircle,
+  Clock,
 } from "lucide-react";
-import { useClaimDaily, useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
+import { useClaimDaily, useCallBalance, useCanClaim, formatCallBalance } from "@/hooks/use-contracts";
 
 const tierThresholds = [
   { tier: "casual", min: 100, label: "Casual Fan", color: "#00FF6A" },
@@ -50,6 +51,7 @@ export default function ProfilePage() {
   // On-chain contract hooks
   const { claim, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess, error: claimError } = useClaimDaily();
   const { data: onChainBalance, refetch: refetchBalance } = useCallBalance();
+  const { canClaim, timeLeft } = useCanClaim();
   const [claimDone, setClaimDone] = useState(false);
 
   // After successful claim, refresh user data and on-chain balance
@@ -266,7 +268,7 @@ export default function ProfilePage() {
         className="bg-emerald-50 border border-green-200 rounded-xl p-4 flex items-center justify-between shadow-sm"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-emerald-700">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${canClaim ? "bg-green-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
             <CalendarSync className="w-5 h-5" />
           </div>
           <div>
@@ -274,27 +276,33 @@ export default function ProfilePage() {
               Daily CALL Claim
             </h3>
             <p className="text-[11px] text-emerald-700/70 mt-1">
-              Ready for collection
+              {canClaim ? "Ready for collection" : `Next claim in ${timeLeft}`}
             </p>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => claim()}
-            disabled={claimPending || claimConfirming || claimDone}
-            className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 duration-150 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {claimPending ? (
-              <><Loader2 className="w-3 h-3 animate-spin" /> Signing...</>
-            ) : claimConfirming ? (
-              <><Loader2 className="w-3 h-3 animate-spin" /> Confirming...</>
-            ) : claimDone ? (
-              <><Check className="w-3 h-3" /> Claimed!</>
-            ) : (
-              "Claim 100 CALL"
-            )}
-          </motion.button>
+          {canClaim ? (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => claim()}
+              disabled={claimPending || claimConfirming || claimDone}
+              className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 duration-150 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {claimPending ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Signing...</>
+              ) : claimConfirming ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Confirming...</>
+              ) : claimDone ? (
+                <><Check className="w-3 h-3" /> Claimed!</>
+              ) : (
+                "Claim 100 CALL"
+              )}
+            </motion.button>
+          ) : (
+            <div className="bg-slate-200 text-slate-500 text-xs font-bold px-4 py-2 rounded-lg cursor-not-allowed flex items-center gap-1.5">
+              <Clock className="w-3 h-3" /> {timeLeft}
+            </div>
+          )}
           {claimError && (
             <span className="text-[10px] text-red-600 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />

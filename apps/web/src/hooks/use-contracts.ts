@@ -123,8 +123,33 @@ export function useLastClaimed() {
     abi: callTokenAbi,
     functionName: "lastClaimed",
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: 30000 },
   });
+}
+
+/** Check if user can claim daily CALL tokens (24h cooldown) */
+export function useCanClaim(): { canClaim: boolean; timeLeft: string; lastClaimedAt: Date | null } {
+  const { data: lastClaimed } = useLastClaimed();
+
+  if (!lastClaimed || lastClaimed === BigInt(0)) {
+    return { canClaim: true, timeLeft: "", lastClaimedAt: null };
+  }
+
+  const lastClaimedMs = Number(lastClaimed) * 1000;
+  const lastClaimedAt = new Date(lastClaimedMs);
+  const nextClaimMs = lastClaimedMs + 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  if (now >= nextClaimMs) {
+    return { canClaim: true, timeLeft: "", lastClaimedAt };
+  }
+
+  const diff = nextClaimMs - now;
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const timeLeft = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+  return { canClaim: false, timeLeft, lastClaimedAt };
 }
 
 /** Claim daily CALL tokens */
