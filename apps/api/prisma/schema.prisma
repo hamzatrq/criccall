@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AUTH & USERS
+// ============================================
+
+model User {
+  id                String   @id @default(uuid())
+  walletAddress     String   @unique @map("wallet_address")
+  role              String   @default("user") // user | sponsor | super_admin
+  displayName       String?  @map("display_name")
+  avatarUrl         String?  @map("avatar_url")
+  favoriteTeam      String?  @map("favorite_team")
+  cachedCallBalance String   @default("0") @map("cached_call_balance")
+  tier              String   @default("new_fan") // new_fan | casual | dedicated | expert | superforecaster
+  lastClaimedAt     DateTime? @map("last_claimed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  predictions     Prediction[]
+  rewardClaims    RewardClaim[]
+  rewardWinners   RewardWinner[]
+  dealRedemptions DealRedemption[]
+  notifications   Notification[]
+  brandProfile    BrandProfile?
+  marketCampaigns MarketCampaign[]
+
+  @@map("users")
+}
+
+model Nonce {
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("nonces")
+}
+
+// ============================================
+// TEAMS & MATCHES
+// ============================================
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  shortName String   @map("short_name")
+  logoUrl   String?  @map("logo_url")
+  type      String   // national | franchise
+  country   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  matchesAsTeamA Match[] @relation("TeamA")
+  matchesAsTeamB Match[] @relation("TeamB")
+
+  @@map("teams")
+}
+
+model Match {
+  id         String   @id @default(uuid())
+  matchId    String   @unique @map("match_id")
+  teamAId    String   @map("team_a_id")
+  teamBId    String   @map("team_b_id")
+  matchType  String   @map("match_type") // T20 | ODI | Test
+  tournament String
+  venue      String?
+  startTime  DateTime @map("start_time")
+  status     String   @default("upcoming") // upcoming | live | completed
+  apiData    Json?    @map("api_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  teamA   Team     @relation("TeamA", fields: [teamAId], references: [id])
+  teamB   Team     @relation("TeamB", fields: [teamBId], references: [id])
+  markets Market[]
+
+  @@map("matches")
+}
+
+// ============================================
+// MARKETS & PREDICTIONS
+// ============================================
+
+model Market {
+  id              String   @id @default(uuid())
+  onChainId       Int      @unique @map("on_chain_id")
+  matchId         String   @map("match_id")
+  question        String
+  lockTime        DateTime @map("lock_time")
+  yesOutcome      Int      @map("yes_outcome")
+  state           String   @default("open") // open | locked | resolved | canceled
+  resolvedOutcome Int?     @map("resolved_outcome")
+  yesPool         String   @default("0") @map("yes_pool")
+  noPool          String   @default("0") @map("no_pool")
+  totalPredictors Int      @default(0) @map("total_predictors")
+  yesWon          Boolean? @map("yes_won")
+  totalPrize      String   @default("0") @map("total_prize")
+  createdTxHash   String?  @map("created_tx_hash")
+  resolvedTxHash  String?  @map("resolved_tx_hash")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  match               Match              @relation(fields: [matchId], references: [matchId])
+  predictions         Prediction[]
+  campaigns           MarketCampaign[]
+  rewardDistributions RewardDistribution[]
+
+  @@map("markets")
+}
+
+model Prediction {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  marketId  Int      @map("market_id")
+  position  String   // yes | no
+  amount    String
+  txHash    String?  @map("tx_hash")
+  result    String?  // won | lost | refunded | pending
+  winnings  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  market Market @relation(fields: [marketId], references: [onChainId])
+
+  @@map("predictions")
+}
+
+// ============================================
+// SPONSORSHIP & REWARDS
+// ============================================
+
+model MarketCampaign {
+  id            String   @id @default(uuid())
+  marketId      String   @map("market_id")
+  campaignId    String   @unique @map("campaign_id")
+  sponsorId     String   @map("sponsor_id")
+  sponsorName   String   @map("sponsor_name")
+  sponsorLogo   String?  @map("sponsor_logo")
+  sponsorBanner String?  @map("sponsor_banner")
+  sponsorUrl    String?  @map("sponsor_url")
+  prizeAmount   String   @map("prize_amount")
+  tier          String   // title | gold | sponsor
+  merkleRoot    String?  @map("merkle_root")
+  status        String   @default("active") // active | resolved | clawed_back
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  market              Market              @relation(fields: [marketId], references: [id])
+  sponsor             User                @relation(fields: [sponsorId], references: [id])
+  rewardDistributions RewardDistribution[]
+
+  @@map("market_campaigns")
+}
+
+model RewardDistribution {
+  id             String   @id @default(uuid())
+  marketId       String   @map("market_id")
+  campaignId     String   @map("campaign_id")
+  merkleRoot     String   @map("merkle_root")
+  totalAllocated String   @map("total_allocated")
+  winnerCount    Int      @map("winner_count")
+  treeData       Json     @map("tree_data")
+  postTxHash     String?  @map("post_tx_hash")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  market   Market         @relation(fields: [marketId], references: [id])
+  campaign MarketCampaign @relation(fields: [campaignId], references: [campaignId])
+  winners  RewardWinner[]
+
+  @@map("reward_distributions")
+}
+
+model RewardWinner {
+  id             String   @id @default(uuid())
+  distributionId String   @map("distribution_id")
+  userId         String   @map("user_id")
+  walletAddress  String   @map("wallet_address")
+  pkrAmount      String   @map("pkr_amount")
+  callAmount     String   @map("call_amount")
+  claimed        Boolean  @default(false)
+  claimTxHash    String?  @map("claim_tx_hash")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  distribution RewardDistribution @relation(fields: [distributionId], references: [id])
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@map("reward_winners")
+}
+
+model RewardClaim {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  campaignId String   @map("campaign_id")
+  amount     String
+  txHash     String?  @map("tx_hash")
+  claimedAt  DateTime @map("claimed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("reward_claims")
+}
+
+// ============================================
+// BRAND DEALS
+// ============================================
+
+model BrandProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  brandName   String   @map("brand_name")
+  brandLogo   String?  @map("brand_logo")
+  brandBanner String?  @map("brand_banner")
+  brandUrl    String?  @map("brand_url")
+  description String?
+  category    String   // food | telecom | ecommerce | entertainment | sports | other
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id])
+  deals Deal[]
+
+  @@map("brand_profiles")
+}
+
+model Deal {
+  id             String   @id @default(uuid())
+  brandId        String   @map("brand_id")
+  title          String
+  description    String?
+  imageUrl       String?  @map("image_url")
+  minCall        Int      @map("min_call")
+  dealType       String   @default("coupon_code") @map("deal_type")
+  couponCode     String?  @map("coupon_code")
+  dealUrl        String?  @map("deal_url")
+  maxRedemptions Int?     @map("max_redemptions")
+  totalRedeemed  Int      @default(0) @map("total_redeemed")
+  startsAt       DateTime @map("starts_at")
+  expiresAt      DateTime @map("expires_at")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  brand       BrandProfile     @relation(fields: [brandId], references: [id])
+  redemptions DealRedemption[]
+
+  @@map("deals")
+}
+
+model DealRedemption {
+  id          String   @id @default(uuid())
+  dealId      String   @map("deal_id")
+  userId      String   @map("user_id")
+  redeemedAt  DateTime @map("redeemed_at")
+  callBalance Int      @map("call_balance")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  deal Deal @relation(fields: [dealId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([dealId, userId])
+  @@map("deal_redemptions")
+}
+
+// ============================================
+// ORACLE
+// ============================================
+
+model OracleResolution {
+  id           String    @id @default(uuid())
+  matchId      String    @unique @map("match_id")
+  outcome      Int       // 1=TeamA, 2=TeamB, 3=Draw, 4=NoResult
+  secret       String?   // temporary for commit-reveal
+  commitTxHash String?   @map("commit_tx_hash")
+  revealTxHash String?   @map("reveal_tx_hash")
+  source       String    // api | admin
+  resolvedAt   DateTime? @map("resolved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("oracle_resolutions")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   // winnings | loss | canceled | reward | tier_up | deal_unlocked | sponsor | reminder
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
