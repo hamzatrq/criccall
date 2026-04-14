@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 // --- Cricket helpers (used by markets pages with real API data) ---
 
 const TEAM_FLAGS: Record<string, string> = {
+  // National teams (emoji flags)
   PAK: "\u{1F1F5}\u{1F1F0}",
   IND: "\u{1F1EE}\u{1F1F3}",
   AUS: "\u{1F1E6}\u{1F1FA}",
@@ -23,8 +24,31 @@ const TEAM_FLAGS: Record<string, string> = {
   SCO: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
 };
 
+// PSL franchise team logos (image paths)
+const PSL_LOGOS: Record<string, string> = {
+  PSZ: "/psl/psl-peshawar-zalmi.png",
+  QTG: "/psl/psl-quetta-gladiators.png",
+  KRK: "/psl/psl-karachi-kings.png",
+  ISU: "/psl/psl-islamabad-united.png",
+  LHQ: "/psl/psl-lahore-qalandars.png",
+  MS: "/psl/psl-multan-sultan.png",
+  HK: "/psl/Hyderabad-Kingsmen-logo-1.png",
+  RPZ: "/psl/Rawalpindiz-Logo.png",
+};
+
+/** Get emoji flag for national teams */
 export function getTeamFlag(shortName: string): string {
-  return TEAM_FLAGS[shortName?.toUpperCase()] || "\u{1F3CF}";
+  return TEAM_FLAGS[shortName?.toUpperCase()] || "";
+}
+
+/** Get logo image path for PSL teams (returns null for national teams) */
+export function getTeamLogo(shortName: string): string | null {
+  return PSL_LOGOS[shortName?.toUpperCase()] || null;
+}
+
+/** Check if team has a logo image */
+export function hasTeamLogo(shortName: string): boolean {
+  return !!PSL_LOGOS[shortName?.toUpperCase()];
 }
 
 export function formatPKR(amount: number | string): string {

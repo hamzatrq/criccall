@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { TeamLogo } from "@/components/shared/team-logo";
 
 /**
  * Map an API market object (Prisma shape) to the mock Market type the UI expects.
@@ -237,12 +238,8 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-8 py-8 border-y border-slate-100">
                 {/* Team A */}
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-12 bg-slate-100 rounded-md mb-3 flex items-center justify-center overflow-hidden border border-slate-200">
-                    <span className="text-3xl">
-                      {liveMarket.match.teamA.flag}
-                    </span>
-                  </div>
-                  <span className="font-black text-slate-900">
+                  <TeamLogo shortName={liveMarket.match.teamA.shortName || liveMarket.match.teamA.name?.slice(0, 3)?.toUpperCase()} size="lg" />
+                  <span className="font-black text-slate-900 mt-3">
                     {liveMarket.match.teamA.name.toUpperCase()}
                   </span>
                   {liveMarket.match.score?.teamA ? (
@@ -268,12 +265,8 @@ export default function Home() {
 
                 {/* Team B */}
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-12 bg-slate-100 rounded-md mb-3 flex items-center justify-center overflow-hidden border border-slate-200">
-                    <span className="text-3xl">
-                      {liveMarket.match.teamB.flag}
-                    </span>
-                  </div>
-                  <span className="font-black text-slate-900">
+                  <TeamLogo shortName={liveMarket.match.teamB.shortName || liveMarket.match.teamB.name?.slice(0, 3)?.toUpperCase()} size="lg" />
+                  <span className="font-black text-slate-900 mt-3">
                     {liveMarket.match.teamB.name.toUpperCase()}
                   </span>
                   {liveMarket.match.score?.teamB ? (

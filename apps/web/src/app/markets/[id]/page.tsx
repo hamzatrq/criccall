@@ -6,12 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMarket, useMarketSponsors } from "@/hooks/use-api";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getTeamFlag,
   getYesPercentage,
   formatPKR,
   formatCALL,
   timeUntil,
 } from "@/lib/utils";
+import { TeamLogo } from "@/components/shared/team-logo";
 import {
   Trophy,
   Users,
@@ -78,8 +78,8 @@ export default function MarketDetailPage() {
   const goldSponsor = sponsors.find((s: any) => s.tier === "gold");
   const platformSponsor = sponsors.find((s: any) => s.tier === "sponsor");
 
-  const teamAFlag = getTeamFlag(market.match?.teamA?.shortName);
-  const teamBFlag = getTeamFlag(market.match?.teamB?.shortName);
+  const teamAShortName = market.match?.teamA?.shortName || market.match?.teamA?.name?.slice(0, 3)?.toUpperCase() || "TBA";
+  const teamBShortName = market.match?.teamB?.shortName || market.match?.teamB?.name?.slice(0, 3)?.toUpperCase() || "TBA";
 
   const yesPoolNum = Number(market.yesPool) || 0;
   const noPoolNum = Number(market.noPool) || 0;
@@ -161,7 +161,7 @@ export default function MarketDetailPage() {
                   <p className="text-sm text-slate-500 font-medium">BOWLING</p>
                 )}
               </div>
-              <span className="text-5xl">{teamAFlag}</span>
+              <TeamLogo shortName={teamAShortName} size="xl" />
             </div>
 
             {/* VS + Score */}
@@ -185,7 +185,7 @@ export default function MarketDetailPage() {
 
             {/* Team B */}
             <div className="flex flex-1 items-center justify-start gap-4 md:gap-6 w-full md:w-auto">
-              <span className="text-5xl">{teamBFlag}</span>
+              <TeamLogo shortName={teamBShortName} size="xl" />
               <div>
                 <h2 className="text-xl font-black text-slate-900 uppercase">
                   {market.match?.teamB?.name}

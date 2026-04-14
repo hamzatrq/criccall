@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useMarkets } from "@/hooks/use-api";
 import {
-  getTeamFlag,
   getYesPercentage,
   formatPKR,
   timeUntil,
 } from "@/lib/utils";
+import { TeamLogo } from "@/components/shared/team-logo";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const tabs = ["All", "Live", "Upcoming", "Resolved"] as const;
@@ -65,8 +65,8 @@ function StitchMarketCard({ market, index }: { market: any; index: number }) {
   const isResolved = market.state === "resolved";
   const isLive = market.match?.status === "live" && market.state !== "resolved";
 
-  const teamAFlag = getTeamFlag(market.match?.teamA?.shortName);
-  const teamBFlag = getTeamFlag(market.match?.teamB?.shortName);
+  const teamAShortName = market.match?.teamA?.shortName || market.match?.teamA?.name?.slice(0, 3)?.toUpperCase() || "TBA";
+  const teamBShortName = market.match?.teamB?.shortName || market.match?.teamB?.name?.slice(0, 3)?.toUpperCase() || "TBA";
 
   const sponsors = market.campaigns || [];
 
@@ -90,8 +90,8 @@ function StitchMarketCard({ market, index }: { market: any; index: number }) {
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-1">
-                  <span className="text-2xl">{teamAFlag}</span>
-                  <span className="text-2xl">{teamBFlag}</span>
+                  <TeamLogo shortName={teamAShortName} size="sm" />
+                  <TeamLogo shortName={teamBShortName} size="sm" />
                 </div>
                 <span className="text-sm font-bold text-slate-500">
                   {market.match?.teamA?.shortName} vs {market.match?.teamB?.shortName}
