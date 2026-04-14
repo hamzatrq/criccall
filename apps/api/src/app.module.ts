@@ -12,6 +12,7 @@ import { MarketsModule } from './markets/markets.module';
 import { OracleModule } from './oracle/oracle.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { DealsModule } from './deals/deals.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DealsModule } from './deals/deals.module';
     OracleModule,
     RewardsModule,
     DealsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

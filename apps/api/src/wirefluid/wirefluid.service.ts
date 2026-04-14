@@ -260,7 +260,8 @@ export class WireFluidService {
     });
 
     // Owner wallet (market creation, PKR minting, root posting)
-    const ownerKey = this.config.getOrThrow<`0x${string}`>('OWNER_PRIVATE_KEY');
+    const rawOwnerKey = this.config.getOrThrow<string>('OWNER_PRIVATE_KEY');
+    const ownerKey = (rawOwnerKey.startsWith('0x') ? rawOwnerKey : `0x${rawOwnerKey}`) as `0x${string}`;
     const ownerAccount = privateKeyToAccount(ownerKey);
     this.ownerWalletClient = createWalletClient({
       account: ownerAccount,
@@ -269,8 +270,8 @@ export class WireFluidService {
     });
 
     // Oracle wallet (commit/reveal)
-    const oracleKey =
-      this.config.getOrThrow<`0x${string}`>('ORACLE_PRIVATE_KEY');
+    const rawOracleKey = this.config.getOrThrow<string>('ORACLE_PRIVATE_KEY');
+    const oracleKey = (rawOracleKey.startsWith('0x') ? rawOracleKey : `0x${rawOracleKey}`) as `0x${string}`;
     const oracleAccount = privateKeyToAccount(oracleKey);
     this.oracleWalletClient = createWalletClient({
       account: oracleAccount,
