@@ -106,10 +106,11 @@ Recomputed when a new sponsor joins. If a new deposit exceeds the current title 
 Sponsor logs in (wallet + sponsor role)
   → Browses upcoming/live markets
   → Clicks "Sponsor This Match"
-  → Sets: prize amount, winner count
+  → Sets: prize amount
   → Uploads: logo, banner image (optional), click-through URL
   → Approves PKR, deposits into SponsorVault
   → Market card updates immediately
+  → All correct predictors share the prize proportionally
 ```
 
 ### Sponsor Branding Assets
@@ -147,7 +148,7 @@ Stored in MinIO, URLs in DB.
 │  Foodpanda ██░░░░░░░░░░░░░░ Rs. 1,00,000│
 │  CricCall ░░░░░░░░░░░░░░░░░ Rs. 5,000   │
 │                                          │
-│  Top 100 predictors win                  │
+│  All correct predictors win              │
 │  3,420 predictions · Locks 2h 30m        │
 └──────────────────────────────────────────┘
 ```
@@ -214,15 +215,13 @@ Each campaign resolves independently:
 
 ```
 Market resolves:
-  1. Backend queries all PredictionPlaced events for this market
-  2. Ranks ALL predictors by conviction:
-     conviction = amount_on_correct_side / total_amount_bet_by_user
-  3. For each campaign linked to this market:
-     a. Take top N predictors (N = campaign.winner_count)
-     b. Split prize proportionally or equally (campaign config)
-     c. Build Merkle tree of (address, pkrAmount)
-     d. Post root to SponsorVault via WireFluidService
-  4. Users claim PKR from frontend per campaign
+  1. Backend gets all winners (correct side) with their CALL amounts
+  2. For each campaign linked to this market:
+     a. Compute PKR share per winner:
+        user_pkr = (user_call / total_winning_pool) * prize_amount
+     b. Build Merkle tree of (address, pkrAmount)
+     c. Post root to SponsorVault via WireFluidService
+  3. All correct predictors claim PKR from frontend per campaign
 ```
 
 ## Visual Identity
@@ -286,8 +285,6 @@ market_campaigns
 ├── sponsor_banner  VARCHAR (nullable)        ← banner image (title sponsors)
 ├── sponsor_url     VARCHAR (nullable)        ← click-through link
 ├── prize_amount    VARCHAR
-├── winner_count    INTEGER
-├── distribution    VARCHAR DEFAULT 'proportional'  ← 'proportional' or 'equal'
 ├── tier            VARCHAR                   ← 'title' / 'gold' / 'sponsor'
 ├── merkle_root     VARCHAR (nullable)
 ├── status          VARCHAR DEFAULT 'active'  ← active/resolved/clawed_back

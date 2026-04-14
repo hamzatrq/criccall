@@ -13,9 +13,9 @@
 - [x] WireFluidService — Shared viem wallet client, 2 wallets: owner + oracle (wirefluid-service.md)
 - [x] Users — Profile, CALL balance = reputation, tiers, leaderboard, avatar (users.md)
 - [x] Markets — Auto-creation, multi-sponsor, visibility tiers, match data (markets.md)
-- [ ] Predictions — Prediction tracking, conviction ranking
-- [ ] Rewards — Per-campaign Merkle tree computation, postWinnerRoot, claim tracking
-- [ ] Brand Deals — Deal listings, tier-gated access, redemption tracking
+- [x] Predictions — Event indexing, winner lists, user stats (predictions.md)
+- [x] Rewards — Proportional PKR to all winners, Merkle trees, claims (rewards.md)
+- [x] Brand Deals — CALL-gated deals, brand profiles, redemption analytics (brand-deals.md)
 - [ ] WebSocket Gateway — Real-time pool updates during live matches
 - [ ] Notifications — Tier unlocks, reward claims, sponsor announcements
 

@@ -46,7 +46,7 @@ Every existing model is fundamentally broken for this market:
 
 **5. Unlock brand deals with your CALL balance.** Brands offer exclusive discounts and perks to users based on CALL balance tiers. Hold 500+ CALL? You unlock Dedicated Fan deals. Hold 2000+? Expert tier with KFC, Daraz, and Jazz offers. Brands pay CricCall for access to verified cricket superfans.
 
-**6. Win sponsor-funded PKR prizes.** For every match, brands or the platform deposit real PKR (Pakistani Rupee stablecoin) into a SponsorVault smart contract on WireFluid. Top predictors automatically receive PKR prizes — redeemable directly to JazzCash/EasyPaisa via WireFluid's native fiat off-ramp. Fully transparent, fully on-chain.
+**6. Win sponsor-funded PKR prizes.** For every match, brands or the platform deposit real PKR (Pakistani Rupee stablecoin) into a SponsorVault smart contract on WireFluid. All correct predictors receive PKR proportional to their CALL bet — redeemable directly to JazzCash/EasyPaisa via WireFluid's native fiat off-ramp. Fully transparent, fully on-chain.
 
 ---
 
@@ -286,7 +286,7 @@ A user in Lahore opens CricCall during a Pakistan vs India match:
 
 **TIER UP** — CALL balance crosses 500. A notification: "You just unlocked Dedicated Fan deals!" New Foodpanda and KFC offers appear in the Deals tab.
 
-**WIN PKR** — Top 50 predictor for this match. SponsorVault on WireFluid distributes Rs. 100 in PKR to their wallet — claimed with one tap via Merkle proof. Redeemable to JazzCash.
+**WIN PKR** — Correct prediction = share of PKR prize pool proportional to CALL bet. SponsorVault on WireFluid distributes Rs. 100 in PKR to their wallet — claimed with one tap via Merkle proof. Redeemable to JazzCash.
 
 **SHARE** — Prediction card generated: "I predicted Pak 180+ at 62%. Season accuracy: 71%. CALL Balance: 1,247." Shared to WhatsApp. Three friends download CricCall.
 
