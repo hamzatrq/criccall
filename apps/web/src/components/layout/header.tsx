@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Zap, Shield, Store, User, ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { Bell, Shield, Store, User, ChevronDown } from "lucide-react";
 import { currentUser, notifications, formatCALL } from "@/data/mock";
 import { useRole, Role } from "@/lib/role-context";
 
@@ -35,9 +36,7 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" strokeWidth={3} />
-            </div>
+            <Image src="/icon.png" alt="CricCall" width={36} height={36} className="rounded-lg" />
             <span className="text-2xl font-black text-white tracking-tight">CricCall</span>
           </Link>
 

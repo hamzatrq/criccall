@@ -25,6 +25,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   const liveMarket = markets.find((m) => m.match.status === "live");
@@ -415,12 +416,8 @@ export default function Home() {
               viewport={{ once: true }}
               className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-square"
             >
-              {/* Green gradient placeholder for stadium image */}
-              <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-green-700 to-emerald-950 flex items-center justify-center">
-                <div className="text-center text-white/30">
-                  <Trophy className="w-20 h-20 mx-auto mb-4" />
-                  <p className="text-xl font-black">Cricket Stadium</p>
-                </div>
+              <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-green-700 to-emerald-950 flex items-center justify-center p-12">
+                <Image src="/logo.png" alt="CricCall" width={500} height={250} className="object-contain opacity-90" />
               </div>
             </motion.div>
             {/* Floating PSL badge */}
@@ -561,10 +558,8 @@ export default function Home() {
 
           {/* Right: brand + hackathon text */}
           <div className="text-center md:text-right">
-            <div className="flex items-center justify-center md:justify-end gap-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" strokeWidth={3} />
-              </div>
+            <div className="flex items-center justify-center md:justify-end gap-3 mb-4">
+              <Image src="/icon.png" alt="CricCall" width={44} height={44} className="rounded-xl" />
               <span className="text-3xl font-black">CricCall</span>
             </div>
             <p className="text-emerald-300 font-bold max-w-xs">

@@ -19,6 +19,18 @@ export const metadata: Metadata = {
   title: "CricCall — Predict Cricket. Win Rewards.",
   description:
     "The world's first Shariah-compliant cricket prediction protocol on WireFluid. Free to play. Win real PKR prizes.",
+  openGraph: {
+    title: "CricCall — Predict Cricket. Win Rewards.",
+    description: "Free to play. Shariah compliant. Win real PKR prizes from brand sponsors.",
+    images: ["/logo.png"],
+    siteName: "CricCall",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CricCall — Predict Cricket. Win Rewards.",
+    description: "Free to play. Shariah compliant. Win real PKR prizes from brand sponsors.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
