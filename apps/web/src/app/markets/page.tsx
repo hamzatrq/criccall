@@ -106,25 +106,25 @@ function StitchMarketCard({ market, index }: { market: any; index: number }) {
             </h3>
 
             {/* Resolved outcome banner */}
-            {isResolved && market.resolvedOutcome && (
+            {isResolved && market.resolvedOutcome != null && (
               <div
                 className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
-                  market.resolvedOutcome === "yes"
+                  market.yesWon
                     ? "bg-green-50 border border-green-200"
                     : "bg-red-50 border border-red-200"
                 }`}
               >
-                {market.resolvedOutcome === "yes" ? (
+                {market.yesWon ? (
                   <CheckCircle className="w-5 h-5 text-green-700 flex-shrink-0" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                 )}
                 <span
                   className={`text-sm font-bold ${
-                    market.resolvedOutcome === "yes" ? "text-green-700" : "text-red-600"
+                    market.yesWon ? "text-green-700" : "text-red-600"
                   }`}
                 >
-                  OUTCOME: {market.resolvedOutcome.toUpperCase()}
+                  OUTCOME: {market.yesWon ? "YES" : "NO"}
                 </span>
               </div>
             )}
