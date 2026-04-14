@@ -26,9 +26,7 @@ export class DealsController {
   constructor(private readonly dealsService: DealsService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   browseDeals(
-    @CurrentUser() user: { sub: string; wallet: string; role: string },
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('category') category?: string,
@@ -41,17 +39,15 @@ export class DealsController {
       limit,
       category,
       unlockedBool,
-      user.sub,
+      undefined,
     );
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   getDeal(
-    @CurrentUser() user: { sub: string; wallet: string; role: string },
     @Param('id') id: string,
   ) {
-    return this.dealsService.getDeal(id, user.sub);
+    return this.dealsService.getDeal(id, undefined);
   }
 
   @Post(':id/redeem')
