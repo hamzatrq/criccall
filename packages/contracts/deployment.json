@@ -1,0 +1,47 @@
+{
+  "network": "WireFluid Testnet",
+  "chainId": 92533,
+  "deployer": "0x678D575b98d0c082746A9D277aF881B2Ca996657",
+  "deployedAt": "2026-04-14T21:21:06.546Z",
+  "contracts": {
+    "CALLToken": {
+      "address": "0x04884d81a07F0647bF72cfAc5C3Eb3CF863Bf94f",
+      "txHash": "0x91852fbfcabc483e67837b1cedf5bf442235128bdc8f84b18a46e0687510c523"
+    },
+    "CricketOracle": {
+      "address": "0x117f08B6BaE7c8AaE9d342f150d332d563f318B6",
+      "txHash": "0x8b295f68598983c16bdaa2459a0ce2e01f5ead7048ff3f04a8bbbbc46a4b7175"
+    },
+    "PredictionMarket": {
+      "address": "0xB115b03E1C24a4183815804Ca148C786E9a41410",
+      "txHash": "0xd267856b72f7468519becd20833317b017337043c38e57f98cfd555eff626638"
+    },
+    "PKRToken": {
+      "address": "0x74350054cbd9dE1816dF6c243d429d7bbad8E3b5",
+      "txHash": "0xf16e697783e73aa1d666b4e3fe497127a02c40a01aaef6efbd0d0da4f9c99e2e"
+    },
+    "SponsorVault": {
+      "address": "0xd5ae5c002e70DFB60E812FD7D70718C20a764bF7",
+      "txHash": "0xcac9e6ba5c079be8a3939bc43871008eb6df4767f61e1aba751fa1cd376202fd"
+    }
+  },
+  "wiring": {
+    "callToken.setPredictionMarket": {
+      "txHash": "0x48e4edb7dea1c20412e2a0d3c09a75b324a39e951a375dcddb284204ccf7985e"
+    },
+    "oracle.setConsumer": {
+      "txHash": "0x8c8ad6d9a96bb43fc110345e952120eecb8d4d2a1e93bd245f2a967ebc38dcde"
+    },
+    "oracle.addOracle": {
+      "oracleAddress": "0xC85Dd1885E7e2350d9210c58a60937B1822a5470",
+      "txHash": "0x0e12f8692ccaa425e10da52e3b0470d0284a261345b35383e24cdd2cffd3dc95"
+    },
+    "vault.addSponsor(deployer)": {
+      "txHash": "0x8a9a38cc2c08060bc2e2d570ef3243f57d126dd5e1121591592174ec12ab5421"
+    },
+    "pkr.mint(treasury)": {
+      "amount": "10000000",
+      "txHash": "0x82070435aa46d6bc352910e1b3c4e3827fb1212ff03f14752182c68b7ca9aeb0"
+    }
+  }
+}
