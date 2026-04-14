@@ -40,8 +40,9 @@ export default function MarketDetailPage() {
   const [amount, setAmount] = useState(50);
   const [predicted, setPredicted] = useState(false);
 
-  // On-chain prediction hook
+  // On-chain hooks (must be before any early returns)
   const { predict, isPending: predictPending, isConfirming: predictConfirming, isSuccess: predictSuccess, error: predictError } = usePredict();
+  const { data: onChainBalance } = useCallBalance();
 
   // When on-chain tx succeeds, show the confirmation
   useEffect(() => {
@@ -94,7 +95,6 @@ export default function MarketDetailPage() {
     ? Math.round((amount / selectedPool) * totalPrizeNum)
     : 0;
 
-  const { data: onChainBalance } = useCallBalance();
   const maxBalance = onChainBalance ? Math.floor(Number(formatCallBalance(onChainBalance as bigint))) : 100;
 
   const handlePredict = () => {
