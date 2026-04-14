@@ -3,11 +3,15 @@ import {
   Get,
   Post,
   Body,
+  Param,
   UseGuards,
   Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { VerifyDto } from './dto/verify.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -20,7 +24,7 @@ export class AuthController {
   }
 
   @Post('verify')
-  async verify(@Body() body: { message: string; signature: string }) {
+  async verify(@Body() body: VerifyDto) {
     return this.authService.verify(body.message, body.signature);
   }
 

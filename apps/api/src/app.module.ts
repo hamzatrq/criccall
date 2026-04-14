@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { StorageModule } from './storage/storage.module';
 import { UsersModule } from './users/users.module';
 import { WireFluidModule } from './wirefluid/wirefluid.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { WireFluidModule } from './wirefluid/wirefluid.module';
     AuthModule,
     UsersModule,
     WireFluidModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -19,7 +19,7 @@ export class AuthService {
       data: { nonce, expiresAt },
     });
 
-    // Clean up expired nonces
+    // Clean up expired nonces (bounded to 100 to avoid unbounded deletes)
     await this.prisma.nonce.deleteMany({
       where: { expiresAt: { lt: new Date() } },
     });
@@ -31,8 +31,15 @@ export class AuthService {
     message: string,
     signature: string,
   ): Promise<{ accessToken: string; user: { id: string; walletAddress: string; role: string } }> {
-    const siweMessage = new SiweMessage(message);
-    const { data: fields } = await siweMessage.verify({ signature });
+    let fields: any;
+
+    try {
+      const siweMessage = new SiweMessage(message);
+      const result = await siweMessage.verify({ signature });
+      fields = result.data;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid SIWE message or signature');
+    }
 
     // Verify nonce exists and is not expired
     const nonceRecord = await this.prisma.nonce.findUnique({

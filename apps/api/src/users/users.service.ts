@@ -157,52 +157,46 @@ export class UsersService {
     return user;
   }
 
-  /** Leaderboard: top users by cached_call_balance */
+  /** Leaderboard: top users by cached_call_balance (numeric sort via raw SQL) */
   async getLeaderboard(page: number, limit: number) {
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        orderBy: { cachedCallBalance: 'desc' },
-        skip,
-        take: limit,
-        select: {
-          walletAddress: true,
-          displayName: true,
-          avatarUrl: true,
-          cachedCallBalance: true,
-          tier: true,
-        },
-      }),
-      this.prisma.user.count(),
-    ]);
+    // Use raw SQL to sort by numeric value (cachedCallBalance is stored as string)
+    const users = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        u.wallet_address AS "walletAddress",
+        u.display_name AS "displayName",
+        u.avatar_url AS "avatarUrl",
+        u.cached_call_balance AS "cachedCallBalance",
+        u.tier,
+        COUNT(p.id) AS "totalPredictions",
+        COUNT(CASE WHEN p.result = 'won' THEN 1 END) AS "correctPredictions"
+      FROM users u
+      LEFT JOIN predictions p ON p.user_id = u.id
+      GROUP BY u.id
+      ORDER BY CAST(u.cached_call_balance AS NUMERIC) DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    // Compute win rate per user
-    const enriched = await Promise.all(
-      users.map(async (u) => {
-        const user = await this.prisma.user.findUnique({
-          where: { walletAddress: u.walletAddress },
-          select: { id: true },
-        });
-        if (!user) return { ...u, winRate: 0 };
+    const [{ count: total }] = await this.prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count FROM users
+    `;
 
-        const [total, correct] = await Promise.all([
-          this.prisma.prediction.count({ where: { userId: user.id } }),
-          this.prisma.prediction.count({
-            where: { userId: user.id, result: 'won' },
-          }),
-        ]);
-
-        return {
-          ...u,
-          winRate: total > 0 ? Math.round((correct / total) * 1000) / 10 : 0,
-        };
-      }),
-    );
+    const enriched = users.map((u: any) => ({
+      walletAddress: u.walletAddress,
+      displayName: u.displayName,
+      avatarUrl: u.avatarUrl,
+      cachedCallBalance: u.cachedCallBalance,
+      tier: u.tier,
+      winRate:
+        Number(u.totalPredictions) > 0
+          ? Math.round((Number(u.correctPredictions) / Number(u.totalPredictions)) * 1000) / 10
+          : 0,
+    }));
 
     return {
       data: enriched,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      meta: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
     };
   }
 }
