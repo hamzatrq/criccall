@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { markets, formatPKR, formatCALL } from "@/data/mock";
+import { markets, formatPKR, formatCALL, currentBrandProfile } from "@/data/mock";
 import {
   Store,
   Plus,
@@ -17,12 +17,29 @@ import {
   Coins,
   Gift,
   Target,
+  Upload,
+  Globe,
+  FileText,
+  BadgeCheck,
+  Save,
+  Camera,
 } from "lucide-react";
 
 export default function SponsorPage() {
-  const [activeTab, setActiveTab] = useState<"campaigns" | "deals" | "create">("campaigns");
+  const [activeTab, setActiveTab] = useState<"profile" | "campaigns" | "deals" | "create">("profile");
+  const [brandName, setBrandName] = useState(currentBrandProfile.brandName);
+  const [brandUrl, setBrandUrl] = useState(currentBrandProfile.brandUrl || "");
+  const [brandDesc, setBrandDesc] = useState(currentBrandProfile.description);
+  const [brandCategory, setBrandCategory] = useState(currentBrandProfile.category);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const handleSaveProfile = () => {
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 2000);
+  };
 
   const tabs = [
+    { id: "profile" as const, label: "Brand Profile", icon: Store },
     { id: "campaigns" as const, label: "My Campaigns", icon: BarChart3 },
     { id: "deals" as const, label: "My Deals", icon: Tag },
     { id: "create" as const, label: "Create", icon: Plus },
@@ -96,6 +113,178 @@ export default function SponsorPage() {
         </div>
 
         <AnimatePresence mode="wait">
+          {/* ===== Brand Profile ===== */}
+          {activeTab === "profile" && (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid md:grid-cols-3 gap-6"
+            >
+              {/* Left: Logo & Banner */}
+              <div className="space-y-6">
+                {/* Logo Upload */}
+                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Logo</h3>
+                  <div className="flex flex-col items-center">
+                    <div className="relative group mb-3">
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white border-4 border-white shadow-md">
+                        {currentBrandProfile.brandLogo}
+                      </div>
+                      <button className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="w-6 h-6 text-white" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">400x400px · Max 100KB</p>
+                    <p className="text-[10px] text-slate-400">PNG, WebP, or SVG</p>
+                    <button className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                      <Upload className="w-3 h-3" /> Upload New Logo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Banner Upload */}
+                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Banner</h3>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group aspect-[3/1] flex flex-col items-center justify-center">
+                    <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400 transition-colors mb-2" />
+                    <p className="text-xs text-slate-400 group-hover:text-blue-500">Click to upload banner</p>
+                    <p className="text-[10px] text-slate-300 mt-1">1200x400px · Max 300KB</p>
+                  </div>
+                </div>
+
+                {/* Verification Status */}
+                <div className={`rounded-xl p-4 border ${currentBrandProfile.verified ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+                  <div className="flex items-center gap-2">
+                    <BadgeCheck className={`w-5 h-5 ${currentBrandProfile.verified ? "text-emerald-600" : "text-amber-600"}`} />
+                    <div>
+                      <p className={`text-sm font-bold ${currentBrandProfile.verified ? "text-emerald-700" : "text-amber-700"}`}>
+                        {currentBrandProfile.verified ? "Verified Brand" : "Pending Verification"}
+                      </p>
+                      <p className={`text-[10px] ${currentBrandProfile.verified ? "text-emerald-600" : "text-amber-600"}`}>
+                        {currentBrandProfile.verified ? "Your brand is verified and visible to users." : "Admin review in progress. Deals will be visible after approval."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Brand Info Form */}
+              <div className="md:col-span-2 space-y-6">
+                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                  <h3 className="font-black text-lg text-slate-900 mb-6 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    Brand Information
+                  </h3>
+
+                  <div className="space-y-5">
+                    {/* Brand Name */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Brand Name</label>
+                      <input
+                        type="text"
+                        value={brandName}
+                        onChange={(e) => setBrandName(e.target.value)}
+                        placeholder="Your brand name"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors font-medium"
+                      />
+                    </div>
+
+                    {/* Website URL */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Website URL</label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="url"
+                          value={brandUrl}
+                          onChange={(e) => setBrandUrl(e.target.value)}
+                          placeholder="https://yourbrand.com"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Category</label>
+                      <select
+                        value={brandCategory}
+                        onChange={(e) => setBrandCategory(e.target.value as typeof brandCategory)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                      >
+                        <option value="food">Food & Delivery</option>
+                        <option value="telecom">Telecom</option>
+                        <option value="ecommerce">E-Commerce</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="sports">Sports</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Description</label>
+                      <textarea
+                        value={brandDesc}
+                        onChange={(e) => setBrandDesc(e.target.value)}
+                        rows={4}
+                        maxLength={300}
+                        placeholder="Tell users about your brand..."
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors resize-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1 text-right">{brandDesc.length}/300</p>
+                    </div>
+
+                    {/* Save Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSaveProfile}
+                      className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors"
+                    >
+                      {profileSaved ? (
+                        <><CheckCircle className="w-4 h-4" /> Profile Saved!</>
+                      ) : (
+                        <><Save className="w-4 h-4" /> Save Brand Profile</>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Preview Card */}
+                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Preview — How Users See Your Brand</h3>
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-sm font-black text-white">
+                        {currentBrandProfile.brandLogo}
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-900">{brandName || "Brand Name"}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase tracking-widest font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">{brandCategory}</span>
+                          {currentBrandProfile.verified && (
+                            <span className="text-[10px] text-emerald-600 flex items-center gap-0.5">
+                              <BadgeCheck className="w-3 h-3" /> Verified
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 line-clamp-2">{brandDesc || "Brand description will appear here..."}</p>
+                    {brandUrl && (
+                      <p className="text-xs text-blue-500 mt-2 flex items-center gap-1">
+                        <Globe className="w-3 h-3" /> {brandUrl}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* ===== My Campaigns ===== */}
           {activeTab === "campaigns" && (
             <motion.div
