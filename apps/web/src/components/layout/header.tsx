@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -28,28 +28,37 @@ const navLinks = [
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState(false);
   const { user, isAuthenticated, login, logout, isLoading } = useAuth();
   const { role, setRole } = useRole();
   const pathname = usePathname();
   const { data: unreadData } = useUnreadCount();
   const unreadCount = unreadData?.count || 0;
   const { connect } = useConnect();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const rc = roleConfig[role];
+
+  // When wallet connects and we have a pending login, trigger SIWE
+  useEffect(() => {
+    if (pendingLogin && isConnected && address) {
+      setPendingLogin(false);
+      login().catch((e) => console.error("SIWE login failed:", e));
+    }
+  }, [pendingLogin, isConnected, address, login]);
 
   const handleConnect = async () => {
     try {
       if (!isConnected) {
+        // First connect wallet, then login will be triggered by useEffect above
+        setPendingLogin(true);
         connect({ connector: injected() });
-        // Wait briefly for wallet to connect, then login
-        setTimeout(async () => {
-          try { await login(); } catch (e) { console.error(e); }
-        }, 1000);
       } else {
+        // Already connected, just do SIWE login
         await login();
       }
     } catch (e) {
       console.error("Connection failed:", e);
+      setPendingLogin(false);
     }
   };
 

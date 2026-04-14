@@ -9,7 +9,6 @@ import {
   ReactNode,
 } from "react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
-import { SiweMessage } from "siwe";
 import { api } from "./api";
 
 interface User {
@@ -72,17 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 1. Get nonce
       const { nonce } = await api.getNonce();
 
-      // 2. Build SIWE message
-      const siweMessage = new SiweMessage({
-        domain: window.location.host,
-        address,
-        statement: "Sign in to CricCall — Predict Cricket. Win Rewards.",
-        uri: window.location.origin,
-        version: "1",
-        chainId: 92533,
-        nonce,
-      });
-      const message = siweMessage.prepareMessage();
+      // 2. Build SIWE message (EIP-4361)
+      const domain = window.location.host;
+      const origin = window.location.origin;
+      const issuedAt = new Date().toISOString();
+
+      // Build the message manually to ensure correct EIP-4361 format
+      const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nSign in to CricCall\n\nURI: ${origin}\nVersion: 1\nChain ID: 92533\nNonce: ${nonce}\nIssued At: ${issuedAt}`;
 
       // 3. Sign message
       const signature = await signMessageAsync({ message });
