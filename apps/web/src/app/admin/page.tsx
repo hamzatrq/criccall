@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { markets, matches, formatPKR, formatCALL } from "@/data/mock";
+import { useMarkets } from "@/hooks/use-api";
+import { api } from "@/lib/api";
+import { formatCALL } from "@/lib/utils";
 import {
   Plus,
   Coins,
@@ -16,16 +18,40 @@ import {
   Activity,
   Wallet,
   Lock,
+  Loader2,
+  Info,
+  Inbox,
 } from "lucide-react";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "markets" | "pkr" | "oracle">("overview");
+
+  // Mint PKR state
   const [mintAmount, setMintAmount] = useState("");
   const [mintTo, setMintTo] = useState("");
-  const [minted, setMinted] = useState(false);
+
+  // Oracle state
   const [oracleMatchId, setOracleMatchId] = useState("");
   const [oracleOutcome, setOracleOutcome] = useState("1");
+  const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  // Create Market form state
+  const [cmMatchId, setCmMatchId] = useState("");
+  const [cmQuestion, setCmQuestion] = useState("");
+  const [cmLockTime, setCmLockTime] = useState("");
+  const [cmYesOutcome, setCmYesOutcome] = useState("1");
+  const [cmPrize, setCmPrize] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Fetch markets from API
+  const { data: marketsData, isLoading: marketsLoading, refetch: refetchMarkets } = useMarkets();
+  const allMarkets: any[] = marketsData?.data ?? marketsData ?? [];
+  const openMarkets = allMarkets.filter((m: any) => m.status === "open" || m.state === "open");
+  const unresolvedMarkets = allMarkets.filter((m: any) => m.status !== "resolved" && m.status !== "completed");
 
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
@@ -33,6 +59,50 @@ export default function AdminPage() {
     { id: "pkr" as const, label: "Mint PKR", icon: Coins },
     { id: "oracle" as const, label: "Oracle", icon: Radio },
   ];
+
+  // Handle create market
+  const handleCreateMarket = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await api.createMarket({
+        matchId: cmMatchId,
+        question: cmQuestion,
+        lockTime: cmLockTime ? new Date(cmLockTime).toISOString() : undefined,
+        yesOutcome: Number(cmYesOutcome),
+        prize: cmPrize ? Number(cmPrize) : undefined,
+      });
+      setCreated(true);
+      setCmMatchId("");
+      setCmQuestion("");
+      setCmLockTime("");
+      setCmYesOutcome("1");
+      setCmPrize("");
+      refetchMarkets();
+      setTimeout(() => setCreated(false), 2000);
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to create market");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Handle resolve match
+  const handleResolve = async () => {
+    if (!oracleMatchId) return;
+    setResolving(true);
+    setResolveError(null);
+    try {
+      await api.resolveMatch(oracleMatchId, Number(oracleOutcome));
+      setResolved(true);
+      refetchMarkets();
+      setTimeout(() => setResolved(false), 2000);
+    } catch (err: any) {
+      setResolveError(err.message || "Failed to resolve match");
+    } finally {
+      setResolving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -91,15 +161,16 @@ export default function AdminPage() {
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Active Markets", value: markets.filter((m) => m.state === "open").length, color: "text-emerald-600", bg: "bg-emerald-50", icon: Activity },
-                  { label: "Total Predictions", value: "12,847", color: "text-blue-600", bg: "bg-blue-50", icon: BarChart3 },
-                  { label: "PKR Distributed", value: "Rs. 2.4M", color: "text-amber-600", bg: "bg-amber-50", icon: Coins },
-                  { label: "Active Users", value: "3,421", color: "text-purple-600", bg: "bg-purple-50", icon: Users },
+                  { label: "Active Markets", value: marketsLoading ? "..." : openMarkets.length, color: "text-emerald-600", bg: "bg-emerald-50", icon: Activity },
+                  { label: "Total Predictions", value: "\u2014", color: "text-blue-600", bg: "bg-blue-50", icon: BarChart3, tooltip: "Coming soon" },
+                  { label: "PKR Distributed", value: "\u2014", color: "text-amber-600", bg: "bg-amber-50", icon: Coins, tooltip: "Coming soon" },
+                  { label: "Active Users", value: "\u2014", color: "text-purple-600", bg: "bg-purple-50", icon: Users, tooltip: "Coming soon" },
                 ].map((stat) => (
                   <motion.div
                     key={stat.label}
                     whileHover={{ y: -2 }}
                     className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow text-center"
+                    title={"tooltip" in stat ? stat.tooltip : undefined}
                   >
                     <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center mx-auto mb-3`}>
                       <stat.icon className={`w-5 h-5 ${stat.color}`} />
@@ -110,30 +181,13 @@ export default function AdminPage() {
                 ))}
               </div>
 
-              {/* Recent activity */}
+              {/* Recent activity — empty state */}
               <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                 <h3 className="font-black text-lg text-slate-900 mb-5">Recent Activity</h3>
-                <div className="space-y-3">
-                  {[
-                    { icon: CheckCircle, text: "Market #4 resolved — SA vs NZ", time: "2h ago", color: "text-emerald-600", bg: "bg-emerald-50" },
-                    { icon: Coins, text: "Minted 100,000 PKR to Foodpanda", time: "4h ago", color: "text-amber-600", bg: "bg-amber-50" },
-                    { icon: Plus, text: "Created market — PAK vs AUS", time: "1d ago", color: "text-blue-600", bg: "bg-blue-50" },
-                    { icon: Users, text: "Added sponsor — PTCL", time: "2d ago", color: "text-purple-600", bg: "bg-purple-50" },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all"
-                    >
-                      <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center shrink-0`}>
-                        <item.icon className={`w-4 h-4 ${item.color}`} />
-                      </div>
-                      <span className="text-sm font-medium text-slate-800 flex-1">{item.text}</span>
-                      <span className="text-xs text-slate-400 font-bold">{item.time}</span>
-                    </motion.div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                  <Inbox className="w-10 h-10 mb-3 text-slate-300" />
+                  <p className="text-sm font-medium">Activity log will show here</p>
+                  <p className="text-xs mt-1">Market creations, resolutions, and mints will appear as they happen.</p>
                 </div>
               </div>
             </motion.div>
@@ -150,11 +204,18 @@ export default function AdminPage() {
               <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                 <h3 className="font-black text-lg text-slate-900 mb-1">Create New Market</h3>
                 <p className="text-sm text-slate-500 mb-6">Deploy a new prediction market on-chain.</p>
+                {createError && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                    {createError}
+                  </div>
+                )}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Match ID</label>
                     <input
                       type="text"
+                      value={cmMatchId}
+                      onChange={(e) => setCmMatchId(e.target.value)}
                       placeholder="PAK-IND-2026-04-25"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
                     />
@@ -163,6 +224,8 @@ export default function AdminPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Question</label>
                     <input
                       type="text"
+                      value={cmQuestion}
+                      onChange={(e) => setCmQuestion(e.target.value)}
                       placeholder="Will Pakistan win?"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
                     />
@@ -172,12 +235,18 @@ export default function AdminPage() {
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Lock Time</label>
                       <input
                         type="datetime-local"
+                        value={cmLockTime}
+                        onChange={(e) => setCmLockTime(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">YES Outcome</label>
-                      <select className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors">
+                      <select
+                        value={cmYesOutcome}
+                        onChange={(e) => setCmYesOutcome(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
+                      >
                         <option value="1">TeamA Wins</option>
                         <option value="2">TeamB Wins</option>
                         <option value="3">Draw</option>
@@ -188,6 +257,8 @@ export default function AdminPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Default PKR Prize (Platform)</label>
                     <input
                       type="number"
+                      value={cmPrize}
+                      onChange={(e) => setCmPrize(e.target.value)}
                       placeholder="5000"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
                     />
@@ -195,10 +266,17 @@ export default function AdminPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3.5 rounded-xl bg-red-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-red-700 transition-colors"
+                    onClick={handleCreateMarket}
+                    disabled={creating || !cmMatchId || !cmQuestion}
+                    className="w-full py-3.5 rounded-xl bg-red-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Plus className="w-4 h-4" />
-                    Create Market & Deploy On-Chain
+                    {created ? (
+                      <><CheckCircle className="w-4 h-4" /> Market Created!</>
+                    ) : creating ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+                    ) : (
+                      <><Plus className="w-4 h-4" /> Create Market & Deploy On-Chain</>
+                    )}
                   </motion.button>
                 </div>
               </div>
@@ -207,25 +285,37 @@ export default function AdminPage() {
               <div className="mt-6 rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                 <h3 className="font-black text-lg text-slate-900 mb-4">Active Markets</h3>
                 <div className="space-y-3">
-                  {markets.filter((m) => m.state === "open").map((m, i) => (
-                    <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200 hover:shadow-md transition-shadow"
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{m.question}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {m.match.teamA.flag} {m.match.teamA.shortName} vs {m.match.teamB.shortName} {m.match.teamB.flag} · {formatCALL(m.totalPredictors)} predictions
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-black text-emerald-600 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 uppercase tracking-widest">
-                        Open
-                      </span>
-                    </motion.div>
-                  ))}
+                  {marketsLoading ? (
+                    <div className="flex items-center justify-center py-8 text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <span className="text-sm font-medium">Loading markets...</span>
+                    </div>
+                  ) : openMarkets.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                      <Inbox className="w-8 h-8 mb-2 text-slate-300" />
+                      <p className="text-sm font-medium">No active markets</p>
+                    </div>
+                  ) : (
+                    openMarkets.map((m: any, i: number) => (
+                      <motion.div
+                        key={m.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200 hover:shadow-md transition-shadow"
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">{m.question || m.title || `Market #${m.id}`}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {m.teamAShortName || m.matchId || ""} {m.teamAShortName && m.teamBShortName ? "vs" : ""} {m.teamBShortName || ""} {m.totalPredictors != null ? `· ${formatCALL(m.totalPredictors)} predictions` : ""}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-black text-emerald-600 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 uppercase tracking-widest">
+                          Open
+                        </span>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -250,6 +340,13 @@ export default function AdminPage() {
                       Mint PKR to brand wallets against fiat purchase. Or to platform treasury.
                     </p>
                   </div>
+                </div>
+                {/* Notice */}
+                <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2">
+                  <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 font-medium">
+                    Requires on-chain transaction from the owner wallet. Minting is executed via the backend deployer key.
+                  </p>
                 </div>
                 <div className="space-y-4 mt-6">
                   <div>
@@ -291,42 +388,20 @@ export default function AdminPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => { setMinted(true); setTimeout(() => setMinted(false), 2000); }}
-                    className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center gap-2 shadow-sm hover:bg-amber-600 transition-colors"
+                    disabled
+                    className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center gap-2 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {minted ? (
-                      <><CheckCircle className="w-4 h-4" /> Minted!</>
-                    ) : (
-                      <><Coins className="w-4 h-4" /> Mint PKR</>
-                    )}
+                    <Lock className="w-4 h-4" /> Mint PKR (Owner Wallet Required)
                   </motion.button>
                 </div>
               </div>
 
-              {/* Recent mints */}
+              {/* Recent mints — empty state */}
               <div className="mt-6 rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                 <h3 className="font-black text-lg text-slate-900 mb-4">Recent Mints</h3>
-                <div className="space-y-3">
-                  {[
-                    { to: "Foodpanda (0x5e6f...)", amount: 100000, time: "4h ago" },
-                    { to: "PTCL (0x9i0j...)", amount: 1050000, time: "1d ago" },
-                    { to: "Platform Treasury", amount: 50000, time: "2d ago" },
-                    { to: "KFC (0x3m4n...)", amount: 75000, time: "3d ago" },
-                  ].map((mint, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200 hover:shadow-md transition-shadow"
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{mint.to}</p>
-                        <p className="text-xs text-slate-400 font-bold mt-0.5">{mint.time}</p>
-                      </div>
-                      <p className="font-mono font-black text-amber-600 text-lg">{formatPKR(mint.amount)}</p>
-                    </motion.div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                  <Inbox className="w-8 h-8 mb-2 text-slate-300" />
+                  <p className="text-sm font-medium">No recent mints</p>
                 </div>
               </div>
             </motion.div>
@@ -352,6 +427,11 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
+                {resolveError && (
+                  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                    {resolveError}
+                  </div>
+                )}
                 <div className="space-y-4 mt-6">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Match</label>
@@ -361,9 +441,9 @@ export default function AdminPage() {
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-colors"
                     >
                       <option value="">Select match...</option>
-                      {matches.filter((m) => m.status !== "completed").map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.teamA.flag} {m.teamA.shortName} vs {m.teamB.shortName} {m.teamB.flag} — {m.id}
+                      {unresolvedMarkets.map((m: any) => (
+                        <option key={m.id} value={m.matchId || m.id}>
+                          {m.teamAShortName || ""} {m.teamAShortName && m.teamBShortName ? "vs" : ""} {m.teamBShortName || ""} {m.matchId ? `\u2014 ${m.matchId}` : `\u2014 #${m.id}`}
                         </option>
                       ))}
                     </select>
@@ -409,12 +489,14 @@ export default function AdminPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => { setResolved(true); setTimeout(() => setResolved(false), 2000); }}
-                    disabled={!oracleMatchId}
+                    onClick={handleResolve}
+                    disabled={!oracleMatchId || resolving}
                     className="w-full py-3.5 rounded-xl bg-red-600 text-white font-black disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:bg-red-700 transition-colors"
                   >
                     {resolved ? (
                       <><CheckCircle className="w-4 h-4" /> Resolved!</>
+                    ) : resolving ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Resolving...</>
                     ) : (
                       <><Zap className="w-4 h-4" /> Resolve Match</>
                     )}
@@ -431,16 +513,18 @@ export default function AdminPage() {
                       <Wallet className="w-5 h-5 text-emerald-600" />
                     </div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Oracle Wallet</p>
-                    <p className="text-sm font-mono font-bold text-slate-900">0x7q8r...9s0t</p>
-                    <p className="text-xs font-bold text-emerald-600 mt-1">0.45 WIRE</p>
+                    <p className="text-sm font-mono font-bold text-slate-900 truncate">
+                      {process.env.NEXT_PUBLIC_ORACLE_ADDRESS || "\u2014"}
+                    </p>
                   </div>
                   <div className="p-5 rounded-xl bg-white border border-slate-200 hover:shadow-md transition-shadow text-center">
                     <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-3">
                       <Lock className="w-5 h-5 text-blue-600" />
                     </div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Owner Wallet</p>
-                    <p className="text-sm font-mono font-bold text-slate-900">0xa1b2...c3d4</p>
-                    <p className="text-xs font-bold text-emerald-600 mt-1">1.23 WIRE</p>
+                    <p className="text-sm font-mono font-bold text-slate-900 truncate">
+                      {process.env.NEXT_PUBLIC_OWNER_ADDRESS || "\u2014"}
+                    </p>
                   </div>
                 </div>
               </div>

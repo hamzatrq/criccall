@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { formatCALL } from "@/lib/utils";
 import {
-  formatCALL,
   getTierLabel,
   getTierColor,
 } from "@/data/mock";
@@ -370,7 +370,7 @@ export default function LeaderboardPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-2xl font-black text-amber-400">
-                          12.4K
+                          {meta?.total != null ? formatCALL(meta.total) : "\u2014"}
                         </p>
                         <p className="text-[11px] text-green-100/50 uppercase tracking-wider">
                           Total Users
@@ -378,7 +378,7 @@ export default function LeaderboardPage() {
                       </div>
                       <div>
                         <p className="text-2xl font-black text-amber-400">
-                          Rs. 5M+
+                          &mdash;
                         </p>
                         <p className="text-[11px] text-green-100/50 uppercase tracking-wider">
                           PKR Earned

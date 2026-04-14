@@ -33,6 +33,7 @@ export default function DealsPage() {
   const [claimedDeal, setClaimedDeal] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [redeemCode, setRedeemCode] = useState<string>("");
+  const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
   const categoryParam = activeCategory === "All" ? undefined : activeCategory.toLowerCase();
@@ -45,21 +46,26 @@ export default function DealsPage() {
 
   const handleRedeem = async (dealId: string) => {
     setRedeeming(dealId);
+    setRedeemError(null);
     try {
       const result = await api.redeemDeal(dealId);
-      setRedeemCode(result?.code || result?.redeemCode || "CRICCALL20");
+      const code = result?.code || result?.redeemCode;
+      if (!code) {
+        setRedeemError("Redemption failed. Please try again.");
+        return;
+      }
+      setRedeemCode(code);
       setClaimedDeal(dealId);
     } catch {
-      // Fallback: still show success with default code
-      setRedeemCode("CRICCALL20");
-      setClaimedDeal(dealId);
+      setRedeemError("Redemption failed. Please try again.");
     } finally {
       setRedeeming(null);
     }
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(redeemCode || "CRICCALL20");
+    if (!redeemCode) return;
+    navigator.clipboard.writeText(redeemCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -250,6 +256,9 @@ export default function DealsPage() {
                             {redeeming === deal.id ? "Redeeming..." : "Redeem"}
                           </motion.button>
                         )}
+                        {redeemError && redeeming !== deal.id && !claimed && (
+                          <p className="text-xs text-red-600 font-medium mt-1">{redeemError}</p>
+                        )}
                       </>
                     ) : (
                       <>
@@ -296,7 +305,7 @@ export default function DealsPage() {
                         onClick={handleCopy}
                         className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-50 border border-slate-200 font-mono font-bold text-lg tracking-wider text-slate-900 hover:bg-slate-100 transition-colors"
                       >
-                        {redeemCode || "CRICCALL20"}
+                        {redeemCode}
                         <Copy className="w-4 h-4 text-slate-400" />
                       </button>
                       {copied && (

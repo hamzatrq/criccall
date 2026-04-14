@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { markets, formatPKR, formatCALL, currentBrandProfile } from "@/data/mock";
+import { formatPKR, formatCALL } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { useBrandProfile, useMyCampaigns, useMarkets, useDeals } from "@/hooks/use-api";
 import {
   Store,
   Plus,
@@ -23,20 +26,137 @@ import {
   BadgeCheck,
   Save,
   Camera,
+  Loader2,
+  AlertCircle,
+  Inbox,
 } from "lucide-react";
 
 export default function SponsorPage() {
-  const [activeTab, setActiveTab] = useState<"profile" | "campaigns" | "deals" | "create">("profile");
-  const [brandName, setBrandName] = useState(currentBrandProfile.brandName);
-  const [brandUrl, setBrandUrl] = useState(currentBrandProfile.brandUrl || "");
-  const [brandDesc, setBrandDesc] = useState(currentBrandProfile.description);
-  const [brandCategory, setBrandCategory] = useState(currentBrandProfile.category);
-  const [profileSaved, setProfileSaved] = useState(false);
+  const { user } = useAuth();
+  const { data: brandProfile, isLoading: profileLoading } = useBrandProfile();
+  const { data: campaignsData, isLoading: campaignsLoading } = useMyCampaigns();
+  const { data: openMarketsData, isLoading: marketsLoading } = useMarkets({ status: "open" });
+  const { data: dealsData, isLoading: dealsLoading } = useDeals();
 
-  const handleSaveProfile = () => {
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2000);
+  const campaigns = campaignsData?.data ?? campaignsData ?? [];
+  const openMarkets = openMarketsData?.data ?? openMarketsData ?? [];
+  const deals = dealsData?.data ?? dealsData ?? [];
+
+  const [activeTab, setActiveTab] = useState<"profile" | "campaigns" | "deals" | "create">("profile");
+
+  // Brand profile form state
+  const [brandName, setBrandName] = useState("");
+  const [brandUrl, setBrandUrl] = useState("");
+  const [brandDesc, setBrandDesc] = useState("");
+  const [brandCategory, setBrandCategory] = useState("food");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileExists, setProfileExists] = useState(false);
+
+  // Create form state
+  const [selectedMarketId, setSelectedMarketId] = useState("");
+  const [sponsorAmount, setSponsorAmount] = useState("");
+  const [sponsorSubmitting, setSponsorSubmitting] = useState(false);
+  const [sponsorSuccess, setSponsorSuccess] = useState(false);
+  const [sponsorError, setSponsorError] = useState<string | null>(null);
+
+  const [dealTitle, setDealTitle] = useState("");
+  const [dealDescription, setDealDescription] = useState("");
+  const [dealMinCall, setDealMinCall] = useState("");
+  const [dealMaxRedemptions, setDealMaxRedemptions] = useState("");
+  const [dealCouponCode, setDealCouponCode] = useState("");
+  const [dealSubmitting, setDealSubmitting] = useState(false);
+  const [dealSuccess, setDealSuccess] = useState(false);
+  const [dealError, setDealError] = useState<string | null>(null);
+
+  // Populate form from API profile data
+  useEffect(() => {
+    if (brandProfile) {
+      setBrandName(brandProfile.brandName || "");
+      setBrandUrl(brandProfile.brandUrl || "");
+      setBrandDesc(brandProfile.description || "");
+      setBrandCategory(brandProfile.category || "food");
+      setProfileExists(true);
+    }
+  }, [brandProfile]);
+
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      const data = {
+        brandName,
+        brandUrl,
+        description: brandDesc,
+        category: brandCategory,
+      };
+      if (profileExists) {
+        await api.updateBrandProfile(data);
+      } else {
+        await api.createBrandProfile(data);
+        setProfileExists(true);
+      }
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (err: any) {
+      setProfileError(err.message || "Failed to save profile");
+    } finally {
+      setProfileSaving(false);
+    }
   };
+
+  const handleSponsorMarket = async () => {
+    if (!selectedMarketId || !sponsorAmount) return;
+    setSponsorSubmitting(true);
+    setSponsorError(null);
+    try {
+      await api.sponsorMarket(selectedMarketId, {
+        amount: Number(sponsorAmount),
+      });
+      setSponsorSuccess(true);
+      setSponsorAmount("");
+      setTimeout(() => setSponsorSuccess(false), 3000);
+    } catch (err: any) {
+      setSponsorError(err.message || "Failed to sponsor market");
+    } finally {
+      setSponsorSubmitting(false);
+    }
+  };
+
+  const handleCreateDeal = async () => {
+    if (!dealTitle) return;
+    setDealSubmitting(true);
+    setDealError(null);
+    try {
+      await api.createDeal({
+        title: dealTitle,
+        description: dealDescription,
+        minCallBalance: Number(dealMinCall) || 0,
+        maxRedemptions: Number(dealMaxRedemptions) || 0,
+        couponCode: dealCouponCode,
+      });
+      setDealSuccess(true);
+      setDealTitle("");
+      setDealDescription("");
+      setDealMinCall("");
+      setDealMaxRedemptions("");
+      setDealCouponCode("");
+      setTimeout(() => setDealSuccess(false), 3000);
+    } catch (err: any) {
+      setDealError(err.message || "Failed to create deal");
+    } finally {
+      setDealSubmitting(false);
+    }
+  };
+
+  // Derive stats from campaigns
+  const activeCampaignCount = Array.isArray(campaigns)
+    ? campaigns.filter((c: any) => c.status === "active").length
+    : 0;
+  const totalDeposited = Array.isArray(campaigns)
+    ? campaigns.reduce((sum: number, c: any) => sum + (Number(c.depositedAmount ?? c.deposited ?? 0)), 0)
+    : 0;
 
   const tabs = [
     { id: "profile" as const, label: "Brand Profile", icon: Store },
@@ -68,10 +188,10 @@ export default function SponsorPage() {
         {/* Stats overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Active Campaigns", value: "3", color: "text-blue-600", bg: "bg-blue-50", icon: Target },
-            { label: "Total Deposited", value: "Rs. 12.5 Lac", color: "text-amber-600", bg: "bg-amber-50", icon: Coins },
-            { label: "Users Reached", value: "8,421", color: "text-emerald-600", bg: "bg-emerald-50", icon: Users },
-            { label: "Deal Redemptions", value: "3,216", color: "text-purple-600", bg: "bg-purple-50", icon: Gift },
+            { label: "Active Campaigns", value: campaignsLoading ? "..." : String(activeCampaignCount), color: "text-blue-600", bg: "bg-blue-50", icon: Target },
+            { label: "Total Deposited", value: campaignsLoading ? "..." : totalDeposited > 0 ? formatPKR(totalDeposited) : "\u2014", color: "text-amber-600", bg: "bg-amber-50", icon: Coins },
+            { label: "Users Reached", value: "\u2014", color: "text-emerald-600", bg: "bg-emerald-50", icon: Users },
+            { label: "Deal Redemptions", value: "\u2014", color: "text-purple-600", bg: "bg-purple-50", icon: Gift },
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -122,166 +242,186 @@ export default function SponsorPage() {
               exit={{ opacity: 0, y: -10 }}
               className="grid md:grid-cols-3 gap-6"
             >
-              {/* Left: Logo & Banner */}
-              <div className="space-y-6">
-                {/* Logo Upload */}
-                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Logo</h3>
-                  <div className="flex flex-col items-center">
-                    <div className="relative group mb-3">
-                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white border-4 border-white shadow-md">
-                        {currentBrandProfile.brandLogo}
-                      </div>
-                      <button className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="w-6 h-6 text-white" />
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-slate-400">400x400px · Max 100KB</p>
-                    <p className="text-[10px] text-slate-400">PNG, WebP, or SVG</p>
-                    <button className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                      <Upload className="w-3 h-3" /> Upload New Logo
-                    </button>
-                  </div>
+              {profileLoading ? (
+                <div className="md:col-span-3 flex items-center justify-center py-20">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <span className="ml-2 text-slate-500 font-medium">Loading profile...</span>
                 </div>
-
-                {/* Banner Upload */}
-                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Banner</h3>
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group aspect-[3/1] flex flex-col items-center justify-center">
-                    <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400 transition-colors mb-2" />
-                    <p className="text-xs text-slate-400 group-hover:text-blue-500">Click to upload banner</p>
-                    <p className="text-[10px] text-slate-300 mt-1">1200x400px · Max 300KB</p>
-                  </div>
-                </div>
-
-                {/* Verification Status */}
-                <div className={`rounded-xl p-4 border ${currentBrandProfile.verified ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
-                  <div className="flex items-center gap-2">
-                    <BadgeCheck className={`w-5 h-5 ${currentBrandProfile.verified ? "text-emerald-600" : "text-amber-600"}`} />
-                    <div>
-                      <p className={`text-sm font-bold ${currentBrandProfile.verified ? "text-emerald-700" : "text-amber-700"}`}>
-                        {currentBrandProfile.verified ? "Verified Brand" : "Pending Verification"}
-                      </p>
-                      <p className={`text-[10px] ${currentBrandProfile.verified ? "text-emerald-600" : "text-amber-600"}`}>
-                        {currentBrandProfile.verified ? "Your brand is verified and visible to users." : "Admin review in progress. Deals will be visible after approval."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Brand Info Form */}
-              <div className="md:col-span-2 space-y-6">
-                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-                  <h3 className="font-black text-lg text-slate-900 mb-6 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    Brand Information
-                  </h3>
-
-                  <div className="space-y-5">
-                    {/* Brand Name */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Brand Name</label>
-                      <input
-                        type="text"
-                        value={brandName}
-                        onChange={(e) => setBrandName(e.target.value)}
-                        placeholder="Your brand name"
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors font-medium"
-                      />
-                    </div>
-
-                    {/* Website URL */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Website URL</label>
-                      <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="url"
-                          value={brandUrl}
-                          onChange={(e) => setBrandUrl(e.target.value)}
-                          placeholder="https://yourbrand.com"
-                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-                        />
+              ) : (
+                <>
+                  {/* Left: Logo & Banner */}
+                  <div className="space-y-6">
+                    {/* Logo Upload */}
+                    <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Logo</h3>
+                      <div className="flex flex-col items-center">
+                        <div className="relative group mb-3">
+                          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white border-4 border-white shadow-md">
+                            {brandProfile?.brandLogo || brandName?.slice(0, 2)?.toUpperCase() || "BR"}
+                          </div>
+                          <button className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Camera className="w-6 h-6 text-white" />
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400">400x400px · Max 100KB</p>
+                        <p className="text-[10px] text-slate-400">PNG, WebP, or SVG</p>
+                        <button className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                          <Upload className="w-3 h-3" /> Upload New Logo
+                        </button>
                       </div>
                     </div>
 
-                    {/* Category */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Category</label>
-                      <select
-                        value={brandCategory}
-                        onChange={(e) => setBrandCategory(e.target.value as typeof brandCategory)}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-                      >
-                        <option value="food">Food & Delivery</option>
-                        <option value="telecom">Telecom</option>
-                        <option value="ecommerce">E-Commerce</option>
-                        <option value="entertainment">Entertainment</option>
-                        <option value="sports">Sports</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Description</label>
-                      <textarea
-                        value={brandDesc}
-                        onChange={(e) => setBrandDesc(e.target.value)}
-                        rows={4}
-                        maxLength={300}
-                        placeholder="Tell users about your brand..."
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors resize-none"
-                      />
-                      <p className="text-[10px] text-slate-400 mt-1 text-right">{brandDesc.length}/300</p>
-                    </div>
-
-                    {/* Save Button */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleSaveProfile}
-                      className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors"
-                    >
-                      {profileSaved ? (
-                        <><CheckCircle className="w-4 h-4" /> Profile Saved!</>
-                      ) : (
-                        <><Save className="w-4 h-4" /> Save Brand Profile</>
-                      )}
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* Preview Card */}
-                <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Preview — How Users See Your Brand</h3>
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-sm font-black text-white">
-                        {currentBrandProfile.brandLogo}
+                    {/* Banner Upload */}
+                    <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Banner</h3>
+                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group aspect-[3/1] flex flex-col items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400 transition-colors mb-2" />
+                        <p className="text-xs text-slate-400 group-hover:text-blue-500">Click to upload banner</p>
+                        <p className="text-[10px] text-slate-300 mt-1">1200x400px · Max 300KB</p>
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900">{brandName || "Brand Name"}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] uppercase tracking-widest font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">{brandCategory}</span>
-                          {currentBrandProfile.verified && (
-                            <span className="text-[10px] text-emerald-600 flex items-center gap-0.5">
-                              <BadgeCheck className="w-3 h-3" /> Verified
-                            </span>
-                          )}
+                    </div>
+
+                    {/* Verification Status */}
+                    <div className={`rounded-xl p-4 border ${brandProfile?.verified ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className={`w-5 h-5 ${brandProfile?.verified ? "text-emerald-600" : "text-amber-600"}`} />
+                        <div>
+                          <p className={`text-sm font-bold ${brandProfile?.verified ? "text-emerald-700" : "text-amber-700"}`}>
+                            {brandProfile?.verified ? "Verified Brand" : "Pending Verification"}
+                          </p>
+                          <p className={`text-[10px] ${brandProfile?.verified ? "text-emerald-600" : "text-amber-600"}`}>
+                            {brandProfile?.verified ? "Your brand is verified and visible to users." : "Admin review in progress. Deals will be visible after approval."}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600 line-clamp-2">{brandDesc || "Brand description will appear here..."}</p>
-                    {brandUrl && (
-                      <p className="text-xs text-blue-500 mt-2 flex items-center gap-1">
-                        <Globe className="w-3 h-3" /> {brandUrl}
-                      </p>
-                    )}
                   </div>
-                </div>
-              </div>
+
+                  {/* Right: Brand Info Form */}
+                  <div className="md:col-span-2 space-y-6">
+                    <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                      <h3 className="font-black text-lg text-slate-900 mb-6 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        Brand Information
+                      </h3>
+
+                      <div className="space-y-5">
+                        {/* Brand Name */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Brand Name</label>
+                          <input
+                            type="text"
+                            value={brandName}
+                            onChange={(e) => setBrandName(e.target.value)}
+                            placeholder="Your brand name"
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors font-medium"
+                          />
+                        </div>
+
+                        {/* Website URL */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Website URL</label>
+                          <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="url"
+                              value={brandUrl}
+                              onChange={(e) => setBrandUrl(e.target.value)}
+                              placeholder="https://yourbrand.com"
+                              className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Category */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Category</label>
+                          <select
+                            value={brandCategory}
+                            onChange={(e) => setBrandCategory(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                          >
+                            <option value="food">Food & Delivery</option>
+                            <option value="telecom">Telecom</option>
+                            <option value="ecommerce">E-Commerce</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="sports">Sports</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Description</label>
+                          <textarea
+                            value={brandDesc}
+                            onChange={(e) => setBrandDesc(e.target.value)}
+                            rows={4}
+                            maxLength={300}
+                            placeholder="Tell users about your brand..."
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors resize-none"
+                          />
+                          <p className="text-[10px] text-slate-400 mt-1 text-right">{brandDesc.length}/300</p>
+                        </div>
+
+                        {/* Error */}
+                        {profileError && (
+                          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            {profileError}
+                          </div>
+                        )}
+
+                        {/* Save Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleSaveProfile}
+                          disabled={profileSaving}
+                          className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {profileSaving ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                          ) : profileSaved ? (
+                            <><CheckCircle className="w-4 h-4" /> Profile Saved!</>
+                          ) : (
+                            <><Save className="w-4 h-4" /> {profileExists ? "Save Brand Profile" : "Create Brand Profile"}</>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    {/* Preview Card */}
+                    <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Preview — How Users See Your Brand</h3>
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-sm font-black text-white">
+                            {brandProfile?.brandLogo || brandName?.slice(0, 2)?.toUpperCase() || "BR"}
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-900">{brandName || "Brand Name"}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] uppercase tracking-widest font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">{brandCategory}</span>
+                              {brandProfile?.verified && (
+                                <span className="text-[10px] text-emerald-600 flex items-center gap-0.5">
+                                  <BadgeCheck className="w-3 h-3" /> Verified
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-600 line-clamp-2">{brandDesc || "Brand description will appear here..."}</p>
+                        {brandUrl && (
+                          <p className="text-xs text-blue-500 mt-2 flex items-center gap-1">
+                            <Globe className="w-3 h-3" /> {brandUrl}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -294,101 +434,86 @@ export default function SponsorPage() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              {[
-                {
-                  market: "PAK vs IND — Will Pakistan score 180+?",
-                  deposited: 1050000,
-                  tier: "title",
-                  winners: 1200,
-                  claimed: 840000,
-                  impressions: 15000,
-                  status: "active",
-                },
-                {
-                  market: "AUS vs ENG — Will Australia win?",
-                  deposited: 100000,
-                  tier: "gold",
-                  winners: 0,
-                  claimed: 0,
-                  impressions: 3200,
-                  status: "active",
-                },
-                {
-                  market: "SA vs NZ — Will South Africa win?",
-                  deposited: 75000,
-                  tier: "gold",
-                  winners: 450,
-                  claimed: 62000,
-                  impressions: 8900,
-                  status: "resolved",
-                },
-              ].map((campaign, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-5">
-                    <div>
-                      <p className="font-black text-slate-900">{campaign.market}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span
-                          className="text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full"
-                          style={{
-                            color: campaign.tier === "title" ? "#d97706" : "#2563eb",
-                            backgroundColor: campaign.tier === "title" ? "#fffbeb" : "#eff6ff",
-                            border: `1px solid ${campaign.tier === "title" ? "#fde68a" : "#bfdbfe"}`,
-                          }}
-                        >
-                          {campaign.tier} sponsor
-                        </span>
-                        <span
-                          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
-                            campaign.status === "active"
-                              ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
-                              : "text-slate-500 bg-slate-50 border border-slate-200"
-                          }`}
-                        >
-                          {campaign.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deposited</p>
-                      <p className="font-mono font-black text-xl text-amber-600">
-                        {formatPKR(campaign.deposited)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      { icon: Users, label: "Winners", value: campaign.winners.toLocaleString(), color: "text-blue-600", bg: "bg-blue-50" },
-                      { icon: CheckCircle, label: "Claimed", value: formatPKR(campaign.claimed), color: "text-emerald-600", bg: "bg-emerald-50" },
-                      { icon: Eye, label: "Impressions", value: campaign.impressions.toLocaleString(), color: "text-purple-600", bg: "bg-purple-50" },
-                      {
-                        icon: TrendingUp,
-                        label: "ROI",
-                        value: campaign.impressions > 0
-                          ? `${(campaign.impressions / (campaign.deposited / 1000)).toFixed(1)}x`
-                          : "---",
-                        color: "text-emerald-600",
-                        bg: "bg-emerald-50",
-                      },
-                    ].map((stat) => (
-                      <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1.5">
-                          <stat.icon className="w-3 h-3 text-slate-400" />
-                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{stat.label}</span>
+              {campaignsLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <span className="ml-2 text-slate-500 font-medium">Loading campaigns...</span>
+                </div>
+              ) : !Array.isArray(campaigns) || campaigns.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Inbox className="w-12 h-12 text-slate-300 mb-3" />
+                  <p className="font-bold text-slate-700">No campaigns yet</p>
+                  <p className="text-sm text-slate-500 mt-1">Sponsor a market from the Create tab to get started.</p>
+                </div>
+              ) : (
+                campaigns.map((campaign: any, i: number) => (
+                  <motion.div
+                    key={campaign.id ?? i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <p className="font-black text-slate-900">{campaign.marketName ?? campaign.market?.question ?? `Campaign #${campaign.id}`}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span
+                            className="text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full"
+                            style={{
+                              color: campaign.tier === "title" ? "#d97706" : "#2563eb",
+                              backgroundColor: campaign.tier === "title" ? "#fffbeb" : "#eff6ff",
+                              border: `1px solid ${campaign.tier === "title" ? "#fde68a" : "#bfdbfe"}`,
+                            }}
+                          >
+                            {campaign.tier ?? "sponsor"} sponsor
+                          </span>
+                          <span
+                            className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                              campaign.status === "active"
+                                ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
+                                : "text-slate-500 bg-slate-50 border border-slate-200"
+                            }`}
+                          >
+                            {campaign.status ?? "unknown"}
+                          </span>
                         </div>
-                        <p className={`font-mono font-black text-sm ${stat.color}`}>{stat.value}</p>
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deposited</p>
+                        <p className="font-mono font-black text-xl text-amber-600">
+                          {formatPKR(Number(campaign.depositedAmount ?? campaign.deposited ?? 0))}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-3">
+                      {[
+                        { icon: Users, label: "Winners", value: campaign.winners != null ? Number(campaign.winners).toLocaleString() : "\u2014", color: "text-blue-600", bg: "bg-blue-50" },
+                        { icon: CheckCircle, label: "Claimed", value: campaign.claimed != null ? formatPKR(Number(campaign.claimed)) : "\u2014", color: "text-emerald-600", bg: "bg-emerald-50" },
+                        { icon: Eye, label: "Impressions", value: campaign.impressions != null ? Number(campaign.impressions).toLocaleString() : "\u2014", color: "text-purple-600", bg: "bg-purple-50" },
+                        {
+                          icon: TrendingUp,
+                          label: "ROI",
+                          value: campaign.impressions != null && Number(campaign.depositedAmount ?? campaign.deposited ?? 0) > 0
+                            ? `${(Number(campaign.impressions) / (Number(campaign.depositedAmount ?? campaign.deposited) / 1000)).toFixed(1)}x`
+                            : "\u2014",
+                          color: "text-emerald-600",
+                          bg: "bg-emerald-50",
+                        },
+                      ].map((stat) => (
+                        <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1.5">
+                            <stat.icon className="w-3 h-3 text-slate-400" />
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{stat.label}</span>
+                          </div>
+                          <p className={`font-mono font-black text-sm ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           )}
 
@@ -401,61 +526,78 @@ export default function SponsorPage() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              {[
-                { title: "20% off any order", minCall: 100, redeemed: 2340, maxRedemptions: 5000, status: "active", expires: "12d" },
-                { title: "Free Zinger with meal", minCall: 500, redeemed: 876, maxRedemptions: 2000, status: "active", expires: "8d" },
-              ].map((deal, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-black text-lg text-slate-900">{deal.title}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Min {formatCALL(deal.minCall)} CALL · Expires in {deal.expires}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-widest">
-                      {deal.status}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="mb-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Redemptions</span>
-                      <span className="text-xs font-mono font-bold text-slate-700">
-                        {deal.redeemed.toLocaleString()} / {deal.maxRedemptions.toLocaleString()}
+              {dealsLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <span className="ml-2 text-slate-500 font-medium">Loading deals...</span>
+                </div>
+              ) : !Array.isArray(deals) || deals.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Inbox className="w-12 h-12 text-slate-300 mb-3" />
+                  <p className="font-bold text-slate-700">No deals yet</p>
+                  <p className="text-sm text-slate-500 mt-1">Create a brand deal from the Create tab to offer perks to users.</p>
+                </div>
+              ) : (
+                deals.map((deal: any, i: number) => (
+                  <motion.div
+                    key={deal.id ?? i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="rounded-xl bg-white border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-black text-lg text-slate-900">{deal.title}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Min {formatCALL(Number(deal.minCallBalance ?? deal.minCall ?? 0))} CALL
+                          {deal.expiresAt ? ` · Expires ${new Date(deal.expiresAt).toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                        deal.status === "active"
+                          ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
+                          : "text-slate-500 bg-slate-50 border border-slate-200"
+                      }`}>
+                        {deal.status ?? "active"}
                       </span>
                     </div>
-                    <div className="h-2.5 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(deal.redeemed / deal.maxRedemptions) * 100}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Today", value: "74", color: "text-blue-600" },
-                      { label: "Peak Hour", value: "7 PM", color: "text-amber-600" },
-                      { label: "Avg CALL", value: "1,247", color: "text-emerald-600" },
-                    ].map((stat) => (
-                      <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{stat.label}</p>
-                        <p className={`font-mono font-black ${stat.color}`}>{stat.value}</p>
+                    {/* Progress bar */}
+                    {(deal.maxRedemptions ?? 0) > 0 && (
+                      <div className="mb-5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Redemptions</span>
+                          <span className="text-xs font-mono font-bold text-slate-700">
+                            {Number(deal.redeemed ?? deal.redemptions ?? 0).toLocaleString()} / {Number(deal.maxRedemptions).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="h-2.5 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, (Number(deal.redeemed ?? deal.redemptions ?? 0) / Number(deal.maxRedemptions)) * 100)}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                          />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+                    )}
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Redeemed", value: deal.redeemed != null || deal.redemptions != null ? Number(deal.redeemed ?? deal.redemptions).toLocaleString() : "\u2014", color: "text-blue-600" },
+                        { label: "Coupon", value: deal.couponCode || "\u2014", color: "text-amber-600" },
+                        { label: "Min CALL", value: deal.minCallBalance != null || deal.minCall != null ? formatCALL(Number(deal.minCallBalance ?? deal.minCall)) : "\u2014", color: "text-emerald-600" },
+                      ].map((stat) => (
+                        <div key={stat.label} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{stat.label}</p>
+                          <p className={`font-mono font-black ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           )}
 
@@ -484,18 +626,33 @@ export default function SponsorPage() {
                 <div className="space-y-4 mt-5">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Select Market</label>
-                    <select className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors">
-                      {markets.filter((m) => m.state === "open").map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.match.teamA.shortName} vs {m.match.teamB.shortName} — {m.question}
-                        </option>
-                      ))}
-                    </select>
+                    {marketsLoading ? (
+                      <div className="flex items-center gap-2 py-3 px-4 text-sm text-slate-500">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading markets...
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedMarketId}
+                        onChange={(e) => setSelectedMarketId(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
+                      >
+                        <option value="">Select a market...</option>
+                        {Array.isArray(openMarkets) && openMarkets.map((m: any) => (
+                          <option key={m.id} value={m.id}>
+                            {m.match?.teamA?.shortName && m.match?.teamB?.shortName
+                              ? `${m.match.teamA.shortName} vs ${m.match.teamB.shortName} — ${m.question}`
+                              : m.question ?? `Market #${m.id}`}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">PKR Amount</label>
                     <input
                       type="number"
+                      value={sponsorAmount}
+                      onChange={(e) => setSponsorAmount(e.target.value)}
                       placeholder="100000"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors"
                     />
@@ -507,12 +664,32 @@ export default function SponsorPage() {
                       <p className="text-sm text-slate-500 group-hover:text-emerald-600 transition-colors">Click to upload (1200x400, max 300KB)</p>
                     </div>
                   </div>
+
+                  {sponsorError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {sponsorError}
+                    </div>
+                  )}
+                  {sponsorSuccess && (
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      Market sponsored successfully!
+                    </div>
+                  )}
+
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black shadow-sm hover:bg-blue-700 transition-colors"
+                    onClick={handleSponsorMarket}
+                    disabled={sponsorSubmitting || !selectedMarketId || !sponsorAmount}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    Deposit PKR & Sponsor
+                    {sponsorSubmitting ? (
+                      <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span>
+                    ) : (
+                      "Deposit PKR & Sponsor"
+                    )}
                   </motion.button>
                 </div>
               </div>
@@ -535,6 +712,8 @@ export default function SponsorPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Deal Title</label>
                     <input
                       type="text"
+                      value={dealTitle}
+                      onChange={(e) => setDealTitle(e.target.value)}
                       placeholder="20% off any order"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                     />
@@ -542,6 +721,8 @@ export default function SponsorPage() {
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Description</label>
                     <textarea
+                      value={dealDescription}
+                      onChange={(e) => setDealDescription(e.target.value)}
                       placeholder="Valid on orders above Rs. 500..."
                       rows={2}
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 resize-none focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
@@ -552,6 +733,8 @@ export default function SponsorPage() {
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Min CALL Required</label>
                       <input
                         type="number"
+                        value={dealMinCall}
+                        onChange={(e) => setDealMinCall(e.target.value)}
                         placeholder="500"
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                       />
@@ -560,6 +743,8 @@ export default function SponsorPage() {
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Max Redemptions</label>
                       <input
                         type="number"
+                        value={dealMaxRedemptions}
+                        onChange={(e) => setDealMaxRedemptions(e.target.value)}
                         placeholder="5000"
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                       />
@@ -569,17 +754,38 @@ export default function SponsorPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Coupon Code</label>
                     <input
                       type="text"
+                      value={dealCouponCode}
+                      onChange={(e) => setDealCouponCode(e.target.value)}
                       placeholder="CRICCALL20"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                     />
                   </div>
+
+                  {dealError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {dealError}
+                    </div>
+                  )}
+                  {dealSuccess && (
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      Deal created successfully!
+                    </div>
+                  )}
+
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors"
+                    onClick={handleCreateDeal}
+                    disabled={dealSubmitting || !dealTitle}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    <Tag className="w-4 h-4" />
-                    Create Deal
+                    {dealSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+                    ) : (
+                      <><Tag className="w-4 h-4" /> Create Deal</>
+                    )}
                   </motion.button>
                 </div>
               </div>

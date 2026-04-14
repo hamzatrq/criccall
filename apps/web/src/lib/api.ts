@@ -229,6 +229,26 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  async sponsorMarket(marketId: string, data: { amount: number; bannerUrl?: string }) {
+    return this.fetch<any>(`/sponsor/campaigns`, {
+      method: "POST",
+      body: JSON.stringify({ marketId, ...data }),
+    });
+  }
+
+  async createDeal(data: {
+    title: string;
+    description?: string;
+    minCallBalance?: number;
+    maxRedemptions?: number;
+    couponCode?: string;
+  }) {
+    return this.fetch<any>("/deals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiClient();

@@ -618,7 +618,9 @@ export default function Home() {
                   <h4 className="font-black text-slate-900">
                     {entry.displayName}
                   </h4>
-                  <p className="text-xs font-bold text-slate-500">PAKISTAN</p>
+                  {entry.location && (
+                    <p className="text-xs font-bold text-slate-500">{entry.location}</p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="font-mono font-black text-slate-900">
