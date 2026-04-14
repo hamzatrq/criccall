@@ -5,13 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Shield, Store, User, ChevronDown, Wallet } from "lucide-react";
+import { Bell, Shield, Store, User, ChevronDown, Wallet, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { useRole, Role } from "@/lib/role-context";
 import { useUnreadCount } from "@/hooks/use-api";
-import { useConnect, useAccount } from "wagmi";
+import { useConnect, useAccount, useSwitchChain } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { wirefluid } from "@/lib/wagmi";
 
 const roleConfig: Record<Role, { label: string; color: string; icon: typeof User }> = {
   user: { label: "User", color: "#4ade80", icon: User },
@@ -29,6 +30,7 @@ const navLinks = [
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [pendingLogin, setPendingLogin] = useState(false);
   const { user, isAuthenticated, login, logout, isLoading } = useAuth();
   const { role, setRole } = useRole();
@@ -36,26 +38,45 @@ export function Header() {
   const { data: unreadData } = useUnreadCount();
   const unreadCount = unreadData?.count || 0;
   const { connect } = useConnect();
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chainId } = useAccount();
+  const { switchChain } = useSwitchChain();
   const { data: onChainBalance } = useCallBalance();
   const rc = roleConfig[role];
 
-  // When wallet connects and we have a pending login, trigger SIWE
+  // When wallet connects and we have a pending login, switch to WireFluid then login
   useEffect(() => {
     if (pendingLogin && isConnected && address) {
-      setPendingLogin(false);
-      login().catch((e) => console.error("SIWE login failed:", e));
+      const doLogin = async () => {
+        try {
+          // Switch to WireFluid if not already on it
+          if (chainId !== wirefluid.id) {
+            switchChain({ chainId: wirefluid.id });
+            // Wait a moment for chain switch to complete
+            await new Promise((r) => setTimeout(r, 1500));
+          }
+          await login();
+        } catch (e) {
+          console.error("SIWE login failed:", e);
+        } finally {
+          setPendingLogin(false);
+        }
+      };
+      doLogin();
     }
-  }, [pendingLogin, isConnected, address, login]);
+  }, [pendingLogin, isConnected, address, chainId, switchChain, login]);
 
   const handleConnect = async () => {
     try {
       if (!isConnected) {
-        // First connect wallet, then login will be triggered by useEffect above
+        // First connect wallet, then chain switch + login triggered by useEffect
         setPendingLogin(true);
         connect({ connector: injected() });
+      } else if (chainId !== wirefluid.id) {
+        // Connected but wrong chain — switch first, then login
+        setPendingLogin(true);
+        switchChain({ chainId: wirefluid.id });
       } else {
-        // Already connected, just do SIWE login
+        // Already connected to WireFluid, just do SIWE login
         await login();
       }
     } catch (e) {
@@ -173,11 +194,57 @@ export function Header() {
 
           {/* Connect / Profile */}
           {isAuthenticated && user ? (
-            <Link href="/profile">
-              <div className="w-10 h-10 rounded-full border-2 border-emerald-500 overflow-hidden bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="w-10 h-10 rounded-full border-2 border-emerald-500 overflow-hidden bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
+              >
                 {user.displayName?.slice(0, 2)?.toUpperCase() || user.walletAddress.slice(2, 4).toUpperCase()}
-              </div>
-            </Link>
+              </button>
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute right-0 top-12 w-52 rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden z-50"
+                  >
+                    <div className="p-3 border-b border-slate-100">
+                      <p className="text-sm font-bold text-slate-900 truncate">{user.displayName || "User"}</p>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">{user.walletAddress}</p>
+                    </div>
+                    <Link
+                      href="/profile"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-slate-400" />
+                      Profile
+                    </Link>
+                    <Link
+                      href="/rewards"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <Wallet className="w-4 h-4 text-slate-400" />
+                      My Rewards
+                    </Link>
+                    <div className="border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Disconnect Wallet
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ) : (
             <motion.button
               whileHover={{ scale: 1.02 }}
