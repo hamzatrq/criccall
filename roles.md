@@ -48,8 +48,10 @@ p, super_admin, users, manage
 
 # Sponsor
 p, sponsor, campaigns, create
+p, sponsor, campaigns, update
 p, sponsor, campaigns, clawback
 p, sponsor, campaigns, view
+p, sponsor, campaigns, stats
 
 # User
 p, user, call, claim

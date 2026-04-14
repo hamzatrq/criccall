@@ -123,7 +123,9 @@ Winners' CALL balance grows → reputation grows → leaderboard position improv
 
 ### 4. SponsorVault.sol
 
-Real money prize engine. Whitelisted sponsors deposit PKR into campaigns. Top predictors (ranked by CALL balance contribution for that match) claim PKR via Merkle proof. Unclaimed funds return to sponsor after expiry.
+Real money prize engine. Whitelisted sponsors deposit PKR into campaigns. Top predictors (ranked by conviction for that match) claim PKR via Merkle proof. Unclaimed funds return to sponsor after expiry.
+
+**Multi-sponsor model:** Multiple brands can sponsor the same market. Each brand creates a separate campaign in SponsorVault linked to that market. No contract changes needed — the backend manages the market-to-campaigns relationship. Visibility is proportional to deposit size (title sponsor = highest depositor).
 
 **Halal constraint:** `require(whitelistedSponsors[msg.sender])` — user funds can never enter the prize pool. Prize money comes from sponsors/platform, not from users.
 

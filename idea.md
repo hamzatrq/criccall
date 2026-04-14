@@ -159,7 +159,7 @@ CricCall isn't just inspired by PSL — it's a **fan engagement layer that PSL c
 
 **Real-Time Sentiment for Broadcasters.** "78% of CricCall users predict Islamabad United wins" — this is live on-chain data PSL can surface on broadcast graphics, social media, and streaming overlays. It turns passive viewership into interactive content.
 
-**Sponsor Attribution PSL Can't Offer Today.** When Pepsi sponsors a PSL challenge on CricCall, the SponsorVault shows exactly how many fans engaged, predicted, won, and redeemed PKR. PSL can offer sponsors something no cricket board in the world can: **cryptographically verified fan engagement metrics.**
+**Sponsor Attribution PSL Can't Offer Today.** When Pepsi and PTCL both sponsor a PSL match on CricCall, each deposit is visible on-chain. The SponsorVault shows exactly how many fans engaged, predicted, won, and redeemed PKR — per sponsor. Visibility is proportional to spend: PTCL as title sponsor gets banner placement and share card branding. PSL can offer sponsors something no cricket board in the world can: **cryptographically verified fan engagement metrics with proportional brand exposure.**
 
 **Fan Retention Between Seasons.** PSL runs 34 matches over ~4 weeks. CricCall's CALL balance accumulation and brand deal system keeps fans engaged year-round through international matches, practice matches, and pre-season prediction leagues — all feeding back into PSL ecosystem engagement.
 
@@ -169,13 +169,13 @@ CricCall isn't just inspired by PSL — it's a **fan engagement layer that PSL c
 
 ## SPONSOR REWARD TRANSPARENCY
 
-The SponsorVault is not a black box. It is a fully auditable, on-chain escrow system on WireFluid that makes every rupee traceable from sponsor deposit to winner redemption.
+The SponsorVault is not a black box. It is a fully auditable, on-chain escrow system on WireFluid that makes every rupee traceable from sponsor deposit to winner redemption. **Multiple brands can sponsor the same market** — each with their own on-chain deposit, visibility proportional to contribution.
 
-**DEPOSIT** — Foodpanda deposits Rs. 100,000 in PKR tokens into the SponsorVault contract. Transaction is publicly visible on **WireScan**. Anyone can verify the funds are real.
+**DEPOSIT** — The platform creates a market and deposits a base PKR prize. Foodpanda sees the market trending and deposits Rs. 1,00,000 PKR. PTCL deposits Rs. 10,50,000 PKR. Each deposit is a separate SponsorVault campaign — publicly visible on **WireScan**. PTCL becomes title sponsor (highest deposit), Foodpanda gets gold tier. Total prize pool: Rs. 11,55,000.
 
-**RESOLVE** — Prediction market resolves via oracle. The backend ranks predictors and computes a Merkle tree of winners + PKR amounts. Only the Merkle root is posted on-chain — one transaction regardless of winner count.
+**RESOLVE** — Prediction market resolves via oracle. The backend ranks predictors by conviction and computes a Merkle tree of winners + PKR amounts for each campaign. Only the Merkle root is posted on-chain — one transaction per campaign regardless of winner count.
 
-**CLAIM** — Winners open the app and see "You won Rs. 200 from the Foodpanda PSL Challenge." They claim PKR via Merkle proof. PKR is redeemable via JazzCash mobile balance through WireFluid's local payment rails.
+**CLAIM** — Winners open the app and see "You won Rs. 2,500 PKR from PTCL + Rs. 500 PKR from Foodpanda." They claim PKR via Merkle proof per campaign. PKR is redeemable via JazzCash mobile balance through WireFluid's local payment rails.
 
 **AUDIT** — The SponsorVault exposes public state: `totalCommitted`, `totalAllocated`, `totalRedeemed`. A journalist, user, or Shariah auditor can reconstruct the full lifecycle of every campaign from on-chain data alone via WireScan.
 
