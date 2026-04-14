@@ -212,7 +212,7 @@ export default function Home() {
             className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200"
           >
             <div className="p-6 md:p-8">
-              {/* Sponsor + LIVE badge */}
+              {/* Sponsor + Status badge */}
               <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
                 <div>
                   {titleSponsor && (
@@ -228,10 +228,16 @@ export default function Home() {
                     · {liveMarket.match.venue}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 animate-pulse">
-                  <span className="w-2 h-2 bg-red-600 rounded-full" />
-                  <span className="text-xs font-black">LIVE</span>
-                </div>
+                {liveMarket.match.status === "live" ? (
+                  <div className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 animate-pulse">
+                    <span className="w-2 h-2 bg-red-600 rounded-full" />
+                    <span className="text-xs font-black">LIVE</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
+                    <span className="text-xs font-black">UPCOMING</span>
+                  </div>
+                )}
               </div>
 
               {/* 3-column team layout */}
@@ -242,7 +248,7 @@ export default function Home() {
                   <span className="font-black text-slate-900 mt-3">
                     {liveMarket.match.teamA.name.toUpperCase()}
                   </span>
-                  {liveMarket.match.score?.teamA ? (
+                  {liveMarket.match.score?.teamA && (
                     <span className="text-2xl font-black text-green-600 mt-1">
                       {liveMarket.match.score.teamA}{" "}
                       {liveMarket.match.score.batting === "teamA" && (
@@ -251,7 +257,7 @@ export default function Home() {
                         </span>
                       )}
                     </span>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* VS divider */}
@@ -259,7 +265,7 @@ export default function Home() {
                   <span className="text-slate-400 font-black italic">VS</span>
                   <div className="h-8 w-px bg-slate-200 my-2" />
                   <span className="text-xs font-bold text-slate-500">
-                    MATCH DAY 12
+                    {new Date(liveMarket.match.startTime).toLocaleDateString("en-PK", { weekday: "short", month: "short", day: "numeric" })}
                   </span>
                 </div>
 
@@ -269,13 +275,9 @@ export default function Home() {
                   <span className="font-black text-slate-900 mt-3">
                     {liveMarket.match.teamB.name.toUpperCase()}
                   </span>
-                  {liveMarket.match.score?.teamB ? (
+                  {liveMarket.match.score?.teamB && (
                     <span className="text-2xl font-black text-slate-400 mt-1">
                       {liveMarket.match.score.teamB}
-                    </span>
-                  ) : (
-                    <span className="text-2xl font-black text-slate-400 mt-1">
-                      YET TO BAT
                     </span>
                   )}
                 </div>
