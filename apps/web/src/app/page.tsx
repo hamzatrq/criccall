@@ -322,26 +322,30 @@ export default function Home() {
 
                 {/* Two large prediction button cards */}
                 <div className="grid grid-cols-2 gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group flex flex-col items-center justify-center p-6 border-2 border-green-600 rounded-2xl bg-emerald-50 hover:bg-green-600 hover:text-white transition-all"
-                  >
-                    <span className="text-3xl font-black mb-1">
-                      {yesPercent}%
-                    </span>
-                    <span className="font-bold text-sm">Predict YES</span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group flex flex-col items-center justify-center p-6 border-2 border-red-600 rounded-2xl bg-red-50 hover:bg-red-600 hover:text-white transition-all"
-                  >
-                    <span className="text-3xl font-black mb-1">
-                      {noPercent}%
-                    </span>
-                    <span className="font-bold text-sm">Predict NO</span>
-                  </motion.button>
+                  <Link href={`/markets/${liveMarket.id}`}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group flex flex-col items-center justify-center p-6 border-2 border-green-600 rounded-2xl bg-emerald-50 hover:bg-green-600 hover:text-white transition-all cursor-pointer"
+                    >
+                      <span className="text-3xl font-black mb-1">
+                        {yesPercent}%
+                      </span>
+                      <span className="font-bold text-sm">Predict YES</span>
+                    </motion.div>
+                  </Link>
+                  <Link href={`/markets/${liveMarket.id}`}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group flex flex-col items-center justify-center p-6 border-2 border-red-600 rounded-2xl bg-red-50 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+                    >
+                      <span className="text-3xl font-black mb-1">
+                        {noPercent}%
+                      </span>
+                      <span className="font-bold text-sm">Predict NO</span>
+                    </motion.div>
+                  </Link>
                 </div>
               </div>
 

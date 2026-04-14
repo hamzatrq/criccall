@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Shield, Store, User, ChevronDown, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { useRole, Role } from "@/lib/role-context";
 import { useUnreadCount } from "@/hooks/use-api";
 import { useConnect, useAccount } from "wagmi";
@@ -36,6 +37,7 @@ export function Header() {
   const unreadCount = unreadData?.count || 0;
   const { connect } = useConnect();
   const { isConnected, address } = useAccount();
+  const { data: onChainBalance } = useCallBalance();
   const rc = roleConfig[role];
 
   // When wallet connects and we have a pending login, trigger SIWE
@@ -144,7 +146,11 @@ export function Header() {
           {/* CALL Balance */}
           {isAuthenticated && user && (
             <div className="hidden sm:flex items-center gap-2 bg-emerald-800/50 px-4 py-1.5 rounded-full font-bold border border-emerald-700">
-              <span className="text-sm text-white">{Number(user.cachedCallBalance || 0).toLocaleString()} CALL</span>
+              <span className="text-sm text-white">
+                {onChainBalance !== undefined
+                  ? `${Number(formatCallBalance(onChainBalance as bigint)).toLocaleString()} CALL`
+                  : `${Number(user.cachedCallBalance || 0).toLocaleString()} CALL`}
+              </span>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   formatCALL,
@@ -22,7 +22,9 @@ import {
   Wallet,
   CalendarSync,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { useClaimDaily, useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 
 const tierThresholds = [
   { tier: "casual", min: 100, label: "Casual Fan", color: "#00FF6A" },
@@ -44,6 +46,22 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // On-chain contract hooks
+  const { claim, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess, error: claimError } = useClaimDaily();
+  const { data: onChainBalance, refetch: refetchBalance } = useCallBalance();
+  const [claimDone, setClaimDone] = useState(false);
+
+  // After successful claim, refresh user data and on-chain balance
+  useEffect(() => {
+    if (claimSuccess) {
+      setClaimDone(true);
+      refreshUser();
+      refetchBalance();
+      const timer = setTimeout(() => setClaimDone(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [claimSuccess, refreshUser, refetchBalance]);
 
   // Sync displayName from user when available
   const effectiveDisplayName = displayName || user?.displayName || "User";
@@ -181,12 +199,15 @@ export default function ProfilePage() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
           >
-            {formatCALL(callBalance)}
+            {onChainBalance !== undefined ? formatCallBalance(onChainBalance as bigint) : formatCALL(callBalance)}
           </motion.span>
           <span className="text-sm font-bold text-emerald-800 uppercase tracking-tighter">
             CALL
           </span>
         </div>
+        {onChainBalance !== undefined && (
+          <p className="text-[10px] text-slate-400 mt-1">On-chain balance (cached: {formatCALL(callBalance)})</p>
+        )}
         {nextTier && (
           <div className="mt-6 space-y-2">
             <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
@@ -257,12 +278,30 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 duration-150 transition-all active:scale-95"
-        >
-          Claim 100 CALL
-        </motion.button>
+        <div className="flex flex-col items-end gap-1">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => claim()}
+            disabled={claimPending || claimConfirming || claimDone}
+            className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 duration-150 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {claimPending ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Signing...</>
+            ) : claimConfirming ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Confirming...</>
+            ) : claimDone ? (
+              <><Check className="w-3 h-3" /> Claimed!</>
+            ) : (
+              "Claim 100 CALL"
+            )}
+          </motion.button>
+          {claimError && (
+            <span className="text-[10px] text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {(claimError as Error).message?.slice(0, 50) || "Claim failed"}
+            </span>
+          )}
+        </div>
       </motion.section>
 
       {/* Prediction History */}

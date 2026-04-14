@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMarket, useMarketSponsors } from "@/hooks/use-api";
@@ -23,7 +23,9 @@ import {
   Star,
   Loader2,
   LogIn,
+  AlertCircle,
 } from "lucide-react";
+import { usePredict } from "@/hooks/use-contracts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -37,6 +39,16 @@ export default function MarketDetailPage() {
   const [selectedPosition, setSelectedPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
   const [predicted, setPredicted] = useState(false);
+
+  // On-chain prediction hook
+  const { predict, isPending: predictPending, isConfirming: predictConfirming, isSuccess: predictSuccess, error: predictError } = usePredict();
+
+  // When on-chain tx succeeds, show the confirmation
+  useEffect(() => {
+    if (predictSuccess) {
+      setPredicted(true);
+    }
+  }, [predictSuccess]);
 
   if (isLoading) {
     return (
@@ -85,7 +97,13 @@ export default function MarketDetailPage() {
   const maxBalance = 1000; // default max until on-chain balance is available
 
   const handlePredict = () => {
-    setPredicted(true);
+    const onChainId = (market as any).onChainId;
+    if (onChainId == null) {
+      // Fallback: if no on-chain ID, just show confirmation (demo mode)
+      setPredicted(true);
+      return;
+    }
+    predict(onChainId, selectedPosition, amount);
   };
 
   const quickAmounts = [25, 50, 75, 100];
@@ -415,13 +433,26 @@ export default function MarketDetailPage() {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handlePredict}
-                className="w-full mt-8 bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg shadow-green-700/20 transition-all flex items-center justify-center gap-2 group"
+                disabled={predictPending || predictConfirming}
+                className="w-full mt-8 bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg shadow-green-700/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-60"
               >
-                <span>
-                  Predict {selectedPosition.toUpperCase()} with {amount} CALL
-                </span>
-                <TrendingUp className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                {predictPending ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /><span>Signing transaction...</span></>
+                ) : predictConfirming ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /><span>Confirming on-chain...</span></>
+                ) : (
+                  <>
+                    <span>Predict {selectedPosition.toUpperCase()} with {amount} CALL</span>
+                    <TrendingUp className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </motion.button>
+              {predictError && (
+                <div className="mt-3 flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{(predictError as Error).message?.slice(0, 80) || "Transaction failed"}</span>
+                </div>
+              )}
             </>
           )}
 
