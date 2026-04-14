@@ -3,23 +3,33 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { markets, Market, getYesPercentage, formatPKR, timeUntil } from "@/data/mock";
-import { CheckCircle, XCircle, Users, Trophy } from "lucide-react";
+import { useMarkets } from "@/hooks/use-api";
+import {
+  getTeamFlag,
+  getYesPercentage,
+  formatPKR,
+  timeUntil,
+} from "@/lib/utils";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const tabs = ["All", "Live", "Upcoming", "Resolved"] as const;
 type Tab = (typeof tabs)[number];
 
-const filterMap: Record<Tab, (m: Market) => boolean> = {
-  All: () => true,
-  Live: (m) => m.match.status === "live" && m.state === "open",
-  Upcoming: (m) => m.match.status === "upcoming" && m.state === "open",
-  Resolved: (m) => m.state === "resolved",
+// Map tab names to API status params
+const tabStatusMap: Record<Tab, string | undefined> = {
+  All: undefined,
+  Live: "live",
+  Upcoming: "upcoming",
+  Resolved: "resolved",
 };
 
-function StatusBadge({ market }: { market: Market }) {
-  const isLive = market.match.status === "live" && market.state !== "resolved";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+function StatusBadge({ market }: { market: any }) {
+  const matchStatus = market.match?.status;
+  const isLive = matchStatus === "live" && market.state !== "resolved";
   const isResolved = market.state === "resolved";
-  const isUpcoming = market.match.status === "upcoming" && market.state === "open";
+  const isUpcoming = matchStatus === "upcoming" && market.state === "open";
 
   if (isLive) {
     return (
@@ -49,11 +59,16 @@ function StatusBadge({ market }: { market: Market }) {
   return null;
 }
 
-function StitchMarketCard({ market, index }: { market: Market; index: number }) {
-  const yesPercent = getYesPercentage(market);
+function StitchMarketCard({ market, index }: { market: any; index: number }) {
+  const yesPercent = getYesPercentage(market.yesPool, market.noPool);
   const noPercent = 100 - yesPercent;
   const isResolved = market.state === "resolved";
-  const isLive = market.match.status === "live" && market.state !== "resolved";
+  const isLive = market.match?.status === "live" && market.state !== "resolved";
+
+  const teamAFlag = getTeamFlag(market.match?.teamA?.shortName);
+  const teamBFlag = getTeamFlag(market.match?.teamB?.shortName);
+
+  const sponsors = market.campaigns || [];
 
   return (
     <motion.div
@@ -75,11 +90,11 @@ function StitchMarketCard({ market, index }: { market: Market; index: number }) 
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-1">
-                  <span className="text-2xl">{market.match.teamA.flag}</span>
-                  <span className="text-2xl">{market.match.teamB.flag}</span>
+                  <span className="text-2xl">{teamAFlag}</span>
+                  <span className="text-2xl">{teamBFlag}</span>
                 </div>
                 <span className="text-sm font-bold text-slate-500">
-                  {market.match.teamA.shortName} vs {market.match.teamB.shortName}
+                  {market.match?.teamA?.shortName} vs {market.match?.teamB?.shortName}
                 </span>
               </div>
               <StatusBadge market={market} />
@@ -147,7 +162,7 @@ function StitchMarketCard({ market, index }: { market: Market; index: number }) 
                   {isResolved ? "Total Winners" : "Predictions"}
                 </p>
                 <p className="text-sm font-bold text-slate-900">
-                  {market.totalPredictors.toLocaleString("en-PK")}
+                  {(Number(market.totalPredictors) || 0).toLocaleString("en-PK")}
                 </p>
               </div>
             </div>
@@ -156,13 +171,16 @@ function StitchMarketCard({ market, index }: { market: Market; index: number }) 
           {/* Card Footer - sponsors */}
           <div className="px-5 py-3 bg-slate-50 flex justify-between items-center">
             <div className="flex gap-2 items-center">
-              {market.sponsors.map((s) => (
+              {sponsors.map((s: any) => (
                 <span
-                  key={s.name}
+                  key={s.name || s.id}
                   className="px-1.5 py-0.5 rounded text-[9px] font-medium opacity-60"
-                  style={{ backgroundColor: s.bannerColor + "18", color: s.bannerColor }}
+                  style={{
+                    backgroundColor: (s.bannerColor || "#16A34A") + "18",
+                    color: s.bannerColor || "#16A34A",
+                  }}
                 >
-                  {s.name}
+                  {s.name || s.brandName || "Sponsor"}
                 </span>
               ))}
             </div>
@@ -182,7 +200,13 @@ function StitchMarketCard({ market, index }: { market: Market; index: number }) 
 
 export default function MarketsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const filtered = markets.filter(filterMap[activeTab]);
+  const status = tabStatusMap[activeTab];
+  const { data, isLoading, isError } = useMarkets(
+    status ? { status } : undefined,
+  );
+
+  // The API may return { data: [...] } or just an array
+  const markets: any[] = Array.isArray(data) ? data : data?.data ?? data?.items ?? [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -220,7 +244,29 @@ export default function MarketsPage() {
 
       {/* Market Cards Grid */}
       <AnimatePresence mode="wait">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-20 gap-4"
+          >
+            <Loader2 className="w-8 h-8 text-green-700 animate-spin" />
+            <p className="text-slate-500 text-sm">Loading markets...</p>
+          </motion.div>
+        ) : isError ? (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center py-20"
+          >
+            <p className="text-4xl mb-4">{"\u26A0\uFE0F"}</p>
+            <p className="text-slate-500">Failed to load markets. Please try again.</p>
+          </motion.div>
+        ) : markets.length === 0 ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0 }}
@@ -239,7 +285,7 @@ export default function MarketsPage() {
             exit={{ opacity: 0 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {filtered.map((market, i) => (
+            {markets.map((market: any, i: number) => (
               <StitchMarketCard key={market.id} market={market} index={i} />
             ))}
           </motion.div>

@@ -3,36 +3,51 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMarket, useMarketSponsors } from "@/hooks/use-api";
+import { useAuth } from "@/lib/auth-context";
 import {
-  markets,
+  getTeamFlag,
   getYesPercentage,
   formatPKR,
   formatCALL,
   timeUntil,
-  currentUser,
-} from "@/data/mock";
+} from "@/lib/utils";
 import {
   Trophy,
   Users,
   Clock,
-  ArrowLeft,
   Info,
   TrendingUp,
   ShieldCheck,
   CheckCircle,
   Star,
+  Loader2,
+  LogIn,
 } from "lucide-react";
-import Link from "next/link";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function MarketDetailPage() {
   const params = useParams();
-  const market = markets.find((m) => m.id === Number(params.id));
+  const id = params.id as string;
+  const { data: market, isLoading, isError } = useMarket(id);
+  const { data: sponsorsData } = useMarketSponsors(id);
+  const { isAuthenticated } = useAuth();
+
   const [selectedPosition, setSelectedPosition] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [predicted, setPredicted] = useState(false);
 
-  if (!market) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <Loader2 className="w-8 h-8 text-green-700 animate-spin" />
+        <p className="text-slate-500 text-sm">Loading market...</p>
+      </div>
+    );
+  }
+
+  if (isError || !market) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <p className="text-slate-500">Market not found</p>
@@ -40,27 +55,37 @@ export default function MarketDetailPage() {
     );
   }
 
-  const yesPercent = getYesPercentage(market);
+  const yesPercent = getYesPercentage(market.yesPool, market.noPool);
   const noPercent = 100 - yesPercent;
-  const isLive = market.match.status === "live";
-  const isUpcoming = market.match.status === "upcoming";
+  const isLive = market.match?.status === "live";
+  const isUpcoming = market.match?.status === "upcoming";
   const isResolved = market.state === "resolved";
-  const titleSponsor = market.sponsors.find((s) => s.tier === "title");
-  const goldSponsor = market.sponsors.find((s) => s.tier === "gold");
-  const platformSponsor = market.sponsors.find((s) => s.tier === "sponsor");
 
-  const estimatedReturn = Math.round(
-    amount * (100 / (selectedPosition === "yes" ? yesPercent : noPercent))
-  );
-  const estimatedPKR = Math.round(
-    (amount /
-      (selectedPosition === "yes" ? market.yesPool : market.noPool)) *
-      market.totalPrize
-  );
+  const sponsors: any[] = sponsorsData ?? market.campaigns ?? [];
+  const titleSponsor = sponsors.find((s: any) => s.tier === "title");
+  const goldSponsor = sponsors.find((s: any) => s.tier === "gold");
+  const platformSponsor = sponsors.find((s: any) => s.tier === "sponsor");
+
+  const teamAFlag = getTeamFlag(market.match?.teamA?.shortName);
+  const teamBFlag = getTeamFlag(market.match?.teamB?.shortName);
+
+  const yesPoolNum = Number(market.yesPool) || 0;
+  const noPoolNum = Number(market.noPool) || 0;
+  const totalPrizeNum = Number(market.totalPrize) || 0;
+
+  const selectedPool = selectedPosition === "yes" ? yesPoolNum : noPoolNum;
+  const selectedPercent = selectedPosition === "yes" ? yesPercent : noPercent;
+  const estimatedReturn = selectedPercent > 0
+    ? Math.round(amount * (100 / selectedPercent))
+    : 0;
+  const estimatedPKR = selectedPool > 0
+    ? Math.round((amount / selectedPool) * totalPrizeNum)
+    : 0;
+
+  const maxBalance = 1000; // default max until on-chain balance is available
 
   const handlePredict = () => {
     setPredicted(true);
-    setShowConfirm(false);
   };
 
   const quickAmounts = [25, 50, 75, 100];
@@ -80,11 +105,11 @@ export default function MarketDetailPage() {
             <div className="flex items-center gap-3">
               {titleSponsor && (
                 <span className="bg-green-700/10 text-green-700 text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">
-                  {titleSponsor.name} Presents
+                  {titleSponsor.name || titleSponsor.brandName} Presents
                 </span>
               )}
               <span className="text-slate-500 text-xs font-medium uppercase tracking-tight">
-                {market.match.tournament} {market.match.matchType}
+                {market.match?.tournament} {market.match?.matchType}
               </span>
             </div>
             {isLive && (
@@ -98,7 +123,7 @@ export default function MarketDetailPage() {
             )}
             {isUpcoming && (
               <span className="text-xs font-medium text-slate-500">
-                Starts {timeUntil(market.match.startTime)}
+                Starts {timeUntil(market.match?.startTime || market.lockTime)}
               </span>
             )}
           </div>
@@ -109,16 +134,16 @@ export default function MarketDetailPage() {
             <div className="flex flex-1 items-center justify-end gap-4 md:gap-6 w-full md:w-auto">
               <div className="text-right">
                 <h2 className="text-xl font-black text-slate-900 uppercase">
-                  {market.match.teamA.name}
+                  {market.match?.teamA?.name}
                 </h2>
-                {market.match.score?.batting === "teamA" && (
+                {market.match?.score?.batting === "teamA" && (
                   <p className="text-sm text-slate-500 font-medium">BATTING</p>
                 )}
-                {market.match.score?.batting === "teamB" && (
+                {market.match?.score?.batting === "teamB" && (
                   <p className="text-sm text-slate-500 font-medium">BOWLING</p>
                 )}
               </div>
-              <span className="text-5xl">{market.match.teamA.flag}</span>
+              <span className="text-5xl">{teamAFlag}</span>
             </div>
 
             {/* VS + Score */}
@@ -126,7 +151,7 @@ export default function MarketDetailPage() {
               <div className="text-green-700 font-black text-2xl tracking-tighter italic px-4">
                 VS
               </div>
-              {market.match.score?.teamA && (
+              {market.match?.score?.teamA && (
                 <div className="mt-2 text-center">
                   <span className="text-3xl font-black tracking-tighter text-slate-900">
                     {market.match.score.teamA}
@@ -142,15 +167,15 @@ export default function MarketDetailPage() {
 
             {/* Team B */}
             <div className="flex flex-1 items-center justify-start gap-4 md:gap-6 w-full md:w-auto">
-              <span className="text-5xl">{market.match.teamB.flag}</span>
+              <span className="text-5xl">{teamBFlag}</span>
               <div>
                 <h2 className="text-xl font-black text-slate-900 uppercase">
-                  {market.match.teamB.name}
+                  {market.match?.teamB?.name}
                 </h2>
-                {market.match.score?.batting === "teamB" && (
+                {market.match?.score?.batting === "teamB" && (
                   <p className="text-sm text-slate-500 font-medium">BATTING</p>
                 )}
-                {market.match.score?.batting === "teamA" && (
+                {market.match?.score?.batting === "teamA" && (
                   <p className="text-sm text-slate-500 font-medium">BOWLING</p>
                 )}
               </div>
@@ -236,7 +261,19 @@ export default function MarketDetailPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6"
         >
-          {!isResolved && !predicted && (
+          {!isAuthenticated && !isResolved && (
+            <div className="text-center py-12">
+              <LogIn className="w-10 h-10 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                Connect Wallet to Predict
+              </h3>
+              <p className="text-sm text-slate-500">
+                Sign in with your wallet to make predictions on this market.
+              </p>
+            </div>
+          )}
+
+          {isAuthenticated && !isResolved && !predicted && (
             <>
               <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-green-700 flex items-center justify-center">
@@ -324,7 +361,7 @@ export default function MarketDetailPage() {
                   <input
                     type="range"
                     min={10}
-                    max={currentUser.callBalance}
+                    max={maxBalance}
                     step={1}
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
@@ -332,7 +369,7 @@ export default function MarketDetailPage() {
                   />
                   <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-bold">
                     <span>10 CALL</span>
-                    <span>{formatCALL(currentUser.callBalance)} CALL</span>
+                    <span>{formatCALL(maxBalance)} CALL</span>
                   </div>
                 </div>
 
@@ -341,7 +378,7 @@ export default function MarketDetailPage() {
                   {quickAmounts.map((q) => (
                     <button
                       key={q}
-                      onClick={() => setAmount(Math.min(q, currentUser.callBalance))}
+                      onClick={() => setAmount(Math.min(q, maxBalance))}
                       className={`py-2 rounded-lg text-xs font-bold transition-colors ${
                         amount === q
                           ? "bg-green-700 text-white ring-2 ring-green-700/20"
@@ -449,7 +486,7 @@ export default function MarketDetailPage() {
               <Trophy className="w-5 h-5 text-white/80" />
             </div>
             <div className="text-3xl font-black mb-1 tracking-tight">
-              Rs. {market.totalPrize.toLocaleString("en-PK")}
+              Rs. {totalPrizeNum.toLocaleString("en-PK")}
             </div>
             <div className="text-xs text-white/70 font-medium">
               Distributed among winning predictions
@@ -468,15 +505,15 @@ export default function MarketDetailPage() {
                   <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
                     <span
                       className="text-xs font-bold"
-                      style={{ color: titleSponsor.bannerColor }}
+                      style={{ color: titleSponsor.bannerColor || "#00A651" }}
                     >
-                      {titleSponsor.logo}
+                      {titleSponsor.logo || titleSponsor.brandName?.slice(0, 4)}
                     </span>
                   </div>
                   <div>
                     <p className="text-xs font-black text-green-700">TITLE SPONSOR</p>
                     <p className="text-sm font-bold text-slate-900">
-                      {titleSponsor.name} Pakistan
+                      {titleSponsor.name || titleSponsor.brandName}
                     </p>
                   </div>
                 </div>
@@ -488,15 +525,15 @@ export default function MarketDetailPage() {
                   <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
                     <span
                       className="text-xs font-bold"
-                      style={{ color: goldSponsor.bannerColor }}
+                      style={{ color: goldSponsor.bannerColor || "#E4002B" }}
                     >
-                      {goldSponsor.logo}
+                      {goldSponsor.logo || goldSponsor.brandName?.slice(0, 4)}
                     </span>
                   </div>
                   <div>
                     <p className="text-xs font-black text-amber-600">GOLD SPONSOR</p>
                     <p className="text-sm font-bold text-slate-900">
-                      {goldSponsor.name}
+                      {goldSponsor.name || goldSponsor.brandName}
                     </p>
                   </div>
                 </div>
@@ -507,7 +544,7 @@ export default function MarketDetailPage() {
                 <div className="flex items-center gap-4 opacity-80">
                   <div className="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center p-2">
                     <span className="text-white font-black text-xs">
-                      {platformSponsor.logo}
+                      {platformSponsor.logo || "CC"}
                     </span>
                   </div>
                   <div>
@@ -515,6 +552,11 @@ export default function MarketDetailPage() {
                     <p className="text-sm font-bold text-slate-900">CricCall App</p>
                   </div>
                 </div>
+              )}
+
+              {/* If no sponsors loaded yet, show placeholder */}
+              {sponsors.length === 0 && (
+                <p className="text-xs text-slate-400">No sponsors for this market yet.</p>
               )}
             </div>
           </div>

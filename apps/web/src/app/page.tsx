@@ -2,15 +2,16 @@
 
 import { motion } from "framer-motion";
 import {
-  markets,
-  leaderboard,
   brandLogos,
   formatCALL,
   formatPKR,
   getYesPercentage,
   getTierColor,
   timeUntil,
+  type Market,
+  type LeaderboardEntry,
 } from "@/data/mock";
+import { useLiveMarkets, useLeaderboard } from "@/hooks/use-api";
 import {
   Wallet,
   Trophy,
@@ -24,12 +25,99 @@ import {
   Target,
   Zap,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
+/**
+ * Map an API market object (Prisma shape) to the mock Market type the UI expects.
+ * The API may return nested relations with slightly different field names.
+ */
+function mapApiMarket(raw: any): Market {
+  // If the data already matches the mock shape, return as-is
+  if (raw.match && raw.match.teamA && typeof raw.match.teamA === "object" && raw.match.teamA.flag) {
+    return raw as Market;
+  }
+
+  // Otherwise, map from Prisma-style nested shape
+  const match = raw.match || {};
+  return {
+    id: raw.id,
+    matchId: raw.matchId || match.id || "",
+    match: {
+      id: match.id || raw.matchId || "",
+      teamA: {
+        id: match.teamA?.id || match.teamAId || "",
+        name: match.teamA?.name || match.teamAName || "TBA",
+        shortName: match.teamA?.shortName || match.teamA?.name?.slice(0, 3).toUpperCase() || "TBA",
+        flag: match.teamA?.flag || "",
+        color: match.teamA?.color || "#333",
+      },
+      teamB: {
+        id: match.teamB?.id || match.teamBId || "",
+        name: match.teamB?.name || match.teamBName || "TBA",
+        shortName: match.teamB?.shortName || match.teamB?.name?.slice(0, 3).toUpperCase() || "TBA",
+        flag: match.teamB?.flag || "",
+        color: match.teamB?.color || "#333",
+      },
+      matchType: match.matchType || match.format || "T20",
+      tournament: match.tournament || "",
+      venue: match.venue || "",
+      startTime: match.startTime || match.startAt || "",
+      status: match.status || "upcoming",
+      score: match.score || undefined,
+    },
+    question: raw.question || "",
+    yesPool: raw.yesPool ?? 0,
+    noPool: raw.noPool ?? 0,
+    totalPredictors: raw.totalPredictors ?? raw._count?.predictions ?? 0,
+    state: raw.state || raw.status || "open",
+    lockTime: raw.lockTime || raw.lockAt || "",
+    resolvedOutcome: raw.resolvedOutcome || undefined,
+    sponsors: (raw.sponsors || raw.campaigns || []).map((s: any) => ({
+      name: s.name || s.brandName || "",
+      logo: s.logo || s.brandLogo || "",
+      logoImage: s.logoImage || s.brandLogoUrl || undefined,
+      tier: s.tier || "sponsor",
+      prizeAmount: s.prizeAmount || s.amount || 0,
+      bannerColor: s.bannerColor || s.brandColor || "#16A34A",
+    })),
+    totalPrize: raw.totalPrize ?? raw.prizePool ?? 0,
+  };
+}
+
+/**
+ * Map an API leaderboard entry to the mock LeaderboardEntry shape.
+ */
+function mapApiLeaderboardEntry(raw: any, index: number): LeaderboardEntry {
+  return {
+    rank: raw.rank ?? index + 1,
+    address: raw.address || raw.walletAddress || "",
+    displayName: raw.displayName || raw.name || `User ${index + 1}`,
+    callBalance: raw.callBalance ?? raw.cachedCallBalance ?? 0,
+    tier: raw.tier || "new_fan",
+    avatar: raw.avatar || raw.avatarUrl || undefined,
+    winRate: raw.winRate ?? 0,
+    location: raw.location || undefined,
+  };
+}
+
 export default function Home() {
-  const liveMarket = markets.find((m) => m.match.status === "live");
+  const { data: liveMarketsRaw, isLoading: marketsLoading } = useLiveMarkets();
+  const { data: leaderboardRaw, isLoading: leaderboardLoading } = useLeaderboard(1, 5);
+
+  // Map API data to UI types
+  const liveMarkets: Market[] = Array.isArray(liveMarketsRaw)
+    ? liveMarketsRaw.map(mapApiMarket)
+    : [];
+  const leaderboard: LeaderboardEntry[] = Array.isArray(leaderboardRaw)
+    ? leaderboardRaw.map(mapApiLeaderboardEntry)
+    : Array.isArray((leaderboardRaw as any)?.data)
+    ? (leaderboardRaw as any).data.map(mapApiLeaderboardEntry)
+    : [];
+
+  const liveMarket = liveMarkets.length > 0 ? liveMarkets[0] : null;
   const yesPercent = liveMarket ? getYesPercentage(liveMarket) : 50;
   const noPercent = 100 - yesPercent;
   const titleSponsor = liveMarket?.sponsors.find((s) => s.tier === "title");
@@ -98,7 +186,23 @@ export default function Home() {
       </section>
 
       {/* ===== Featured Market Card — overlapping hero with -mt-24 ===== */}
-      {liveMarket && (
+      {marketsLoading && (
+        <section className="max-w-4xl mx-auto px-6 -mt-24 relative z-20">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-12 flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-green-600 animate-spin mb-3" />
+            <p className="text-slate-500 text-sm font-medium">Loading live markets...</p>
+          </div>
+        </section>
+      )}
+      {!marketsLoading && !liveMarket && (
+        <section className="max-w-4xl mx-auto px-6 -mt-24 relative z-20">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-12 text-center">
+            <p className="text-slate-500 font-medium">No live markets right now</p>
+            <p className="text-slate-400 text-sm mt-1">Check back during the next match!</p>
+          </div>
+        </section>
+      )}
+      {!marketsLoading && liveMarket && (
         <section className="max-w-4xl mx-auto px-6 -mt-24 relative z-20">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -466,6 +570,17 @@ export default function Home() {
             </Link>
           </div>
           <div className="space-y-4">
+            {leaderboardLoading && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 text-green-600 animate-spin mb-3" />
+                <p className="text-slate-500 text-sm">Loading leaderboard...</p>
+              </div>
+            )}
+            {!leaderboardLoading && leaderboard.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-slate-500 font-medium">No leaderboard data yet</p>
+              </div>
+            )}
             {leaderboard.slice(0, 5).map((entry, i) => (
               <motion.div
                 key={entry.address}
