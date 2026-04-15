@@ -144,7 +144,7 @@ export default function MarketDetailPage() {
             <div className="flex items-center gap-3">
               {titleSponsor && (
                 <span className="bg-green-700/10 text-green-700 text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">
-                  {titleSponsor.name || titleSponsor.brandName} Presents
+                  {titleSponsor.sponsorName || titleSponsor.name || titleSponsor.brandName} Presents
                 </span>
               )}
               <span className="text-slate-500 text-xs font-medium uppercase tracking-tight">
@@ -584,12 +584,12 @@ export default function MarketDetailPage() {
                       className="text-xs font-bold"
                       style={{ color: titleSponsor.bannerColor || "#00A651" }}
                     >
-                      {titleSponsor.logo || titleSponsor.brandName?.slice(0, 4)}
+                      {titleSponsor.sponsorLogo || titleSponsor.logo || titleSponsor.sponsorName?.slice(0, 4)}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-900">
-                      {titleSponsor.name || titleSponsor.brandName}
+                      {titleSponsor.sponsorName || titleSponsor.name || titleSponsor.brandName}
                     </p>
                     <p className="text-xs font-medium text-green-700">Title Sponsor</p>
                   </div>
@@ -604,12 +604,12 @@ export default function MarketDetailPage() {
                       className="text-xs font-bold"
                       style={{ color: goldSponsor.bannerColor || "#E4002B" }}
                     >
-                      {goldSponsor.logo || goldSponsor.brandName?.slice(0, 4)}
+                      {goldSponsor.sponsorLogo || goldSponsor.logo || goldSponsor.sponsorName?.slice(0, 4)}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-900">
-                      {goldSponsor.name || goldSponsor.brandName}
+                      {goldSponsor.sponsorName || goldSponsor.name || goldSponsor.brandName}
                     </p>
                     <p className="text-xs font-medium text-amber-600">Gold Sponsor</p>
                   </div>
@@ -621,12 +621,12 @@ export default function MarketDetailPage() {
                 <div className="flex items-center gap-4 opacity-80">
                   <div className="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center p-2">
                     <span className="text-white font-black text-xs">
-                      {platformSponsor.logo || "CC"}
+                      {platformSponsor.sponsorLogo || platformSponsor.logo || "CC"}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-900">
-                      {platformSponsor.name || platformSponsor.brandName || "CricCall"}
+                      {platformSponsor.sponsorName || platformSponsor.name || platformSponsor.brandName || "CricCall"}
                     </p>
                     <p className="text-xs font-medium text-slate-500">Platform</p>
                   </div>
