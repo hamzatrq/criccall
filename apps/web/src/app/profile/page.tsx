@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   formatCALL,
@@ -26,12 +26,13 @@ import {
   Clock,
 } from "lucide-react";
 import { useClaimDaily, useCallBalance, useCanClaim, formatCallBalance } from "@/hooks/use-contracts";
+import Link from "next/link";
 
 const tierThresholds = [
-  { tier: "casual", min: 100, label: "Casual Fan", color: "#00FF6A" },
-  { tier: "dedicated", min: 500, label: "Dedicated Fan", color: "#3B82F6" },
-  { tier: "expert", min: 2000, label: "Expert", color: "#A855F7" },
-  { tier: "superforecaster", min: 5000, label: "Superforecaster", color: "#FFD700" },
+  { tier: "casual", min: 100, label: "Casual Fan", color: "#16A34A" },
+  { tier: "dedicated", min: 500, label: "Dedicated Fan", color: "#2563EB" },
+  { tier: "expert", min: 2000, label: "Expert", color: "#9333EA" },
+  { tier: "superforecaster", min: 5000, label: "Superforecaster", color: "#D97706" },
 ];
 
 const teamOptions = Object.values(teams);
@@ -53,12 +54,26 @@ export default function ProfilePage() {
   const { data: onChainBalance, refetch: refetchBalance } = useCallBalance();
   const { canClaim, timeLeft } = useCanClaim();
   const [claimDone, setClaimDone] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // After successful claim, refresh user data and on-chain balance
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("File too large. Max 2MB.");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setAvatarPreview(url);
+  };
+
+  // After successful claim, sync balance to DB and refresh
   useEffect(() => {
     if (claimSuccess) {
       setClaimDone(true);
-      refreshUser();
+      // Sync on-chain balance to backend DB
+      api.syncBalance().then(() => refreshUser()).catch(() => {});
       refetchBalance();
       const timer = setTimeout(() => setClaimDone(false), 3000);
       return () => clearTimeout(timer);
@@ -148,8 +163,12 @@ export default function ProfilePage() {
         className="flex items-start gap-4"
       >
         <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-white shadow-sm bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white">
-            {effectiveDisplayName.slice(0, 2).toUpperCase()}
+          <div className="w-20 h-20 rounded-full border-4 border-white shadow-sm bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white overflow-hidden">
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              effectiveDisplayName.slice(0, 2).toUpperCase()
+            )}
           </div>
           <button
             onClick={handleEditOpen}
@@ -323,9 +342,9 @@ export default function ProfilePage() {
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
             Prediction History
           </h2>
-          <button className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
-            View All
-          </button>
+          <Link href="/markets" className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest hover:underline">
+            View Markets
+          </Link>
         </div>
         {predsLoading ? (
           <div className="flex justify-center py-8">
@@ -418,14 +437,28 @@ export default function ProfilePage() {
 
               {/* Avatar upload */}
               <div className="flex justify-center mb-6">
-                <div className="relative group cursor-pointer">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white">
-                    {(displayName || effectiveDisplayName).slice(0, 2).toUpperCase()}
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white overflow-hidden">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      (displayName || effectiveDisplayName).slice(0, 2).toUpperCase()
+                    )}
                   </div>
                   <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Camera className="w-6 h-6 text-white" />
                   </div>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </div>
               <p className="text-center text-xs text-slate-500 mb-6">
                 Click to upload avatar (max 2MB)

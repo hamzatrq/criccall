@@ -74,6 +74,10 @@ class ApiClient {
     });
   }
 
+  async syncBalance() {
+    return this.fetch<any>("/users/me/sync-balance", { method: "POST" });
+  }
+
   async getMyPredictions(page = 1, limit = 20) {
     return this.fetch<any>(`/users/me/predictions?page=${page}&limit=${limit}`);
   }
@@ -240,13 +244,24 @@ class ApiClient {
   async createDeal(data: {
     title: string;
     description?: string;
-    minCallBalance?: number;
-    maxRedemptions?: number;
+    minCall: number;
+    dealType: string;
     couponCode?: string;
+    dealUrl?: string;
+    maxRedemptions?: number;
+    startsAt: string;
+    expiresAt: string;
   }) {
     return this.fetch<any>("/deals", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  }
+
+  async recordPrediction(marketId: number, position: string, amount: string, txHash: string) {
+    return this.fetch<any>("/predictions/record", {
+      method: "POST",
+      body: JSON.stringify({ marketId, position, amount, txHash }),
     });
   }
 }

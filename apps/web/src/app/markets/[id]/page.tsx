@@ -26,6 +26,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { usePredict, useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
+import { api } from "@/lib/api";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,14 +42,23 @@ export default function MarketDetailPage() {
   const [predicted, setPredicted] = useState(false);
 
   // On-chain hooks (must be before any early returns)
-  const { predict, isPending: predictPending, isConfirming: predictConfirming, isSuccess: predictSuccess, error: predictError } = usePredict();
+  const { predict, isPending: predictPending, isConfirming: predictConfirming, isSuccess: predictSuccess, error: predictError, hash: predictHash } = usePredict();
   const { data: onChainBalance } = useCallBalance();
 
-  // When on-chain tx succeeds, show the confirmation
+  // When on-chain tx succeeds, show confirmation, record in backend, sync balance
   useEffect(() => {
     if (predictSuccess) {
       setPredicted(true);
+      // Record prediction in backend DB
+      const onChainId = (market as any)?.onChainId;
+      const txHash = (predictHash as string) || "";
+      if (onChainId != null && txHash) {
+        api.recordPrediction(onChainId, selectedPosition, String(amount), txHash).catch(() => {});
+      }
+      // Sync on-chain balance to DB after spending CALL
+      api.syncBalance().catch(() => {});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [predictSuccess]);
 
   if (isLoading) {

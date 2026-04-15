@@ -40,6 +40,12 @@ export class UsersController {
     return this.usersService.updateProfile(user.sub, dto);
   }
 
+  @Post('me/sync-balance')
+  @UseGuards(JwtAuthGuard)
+  syncBalance(@CurrentUser() user: { sub: string; wallet: string; role: string }) {
+    return this.usersService.syncBalance(user.sub);
+  }
+
   @Post('me/avatar')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(

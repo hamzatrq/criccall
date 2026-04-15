@@ -9,7 +9,9 @@ import { Bell, Shield, Store, User, ChevronDown, Wallet, LogOut, Settings } from
 import { useAuth } from "@/lib/auth-context";
 import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { useRole, Role } from "@/lib/role-context";
-import { useUnreadCount } from "@/hooks/use-api";
+import { useUnreadCount, useNotifications } from "@/hooks/use-api";
+import { api } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useConnect, useAccount, useSwitchChain } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { wirefluid } from "@/lib/wagmi";
@@ -37,6 +39,38 @@ export function Header() {
   const pathname = usePathname();
   const { data: unreadData } = useUnreadCount();
   const unreadCount = unreadData?.count || 0;
+  const { data: notificationsData } = useNotifications();
+  const notifications: any[] = notificationsData?.data ?? notificationsData ?? [];
+  const queryClient = useQueryClient();
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.markAllAsRead();
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (e) {
+      console.error("Failed to mark all as read:", e);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "winnings": return "\uD83C\uDFC6";
+      case "reward": return "\uD83D\uDCB0";
+      case "tier_up": return "\u2B50";
+      case "loss": return "\u274C";
+      default: return "\uD83D\uDD14";
+    }
+  };
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
   const { connect } = useConnect();
   const { isConnected, address, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -189,6 +223,55 @@ export function Header() {
                   </span>
                 )}
               </button>
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute right-0 top-11 w-80 max-h-96 rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden z-50"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                      <p className="text-sm font-bold text-slate-900">Notifications</p>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="overflow-y-auto max-h-72">
+                      {notifications.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                          <p className="text-sm text-slate-400">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((n: any) => (
+                          <div
+                            key={n.id}
+                            className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors ${!n.readAt ? "bg-emerald-50/40" : ""}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-lg mt-0.5">{getNotificationIcon(n.type)}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-slate-900 truncate">{n.title}</p>
+                                  {!n.readAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+                                </div>
+                                <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{n.body}</p>
+                                <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.createdAt)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 

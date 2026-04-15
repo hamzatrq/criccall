@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { TeamLogo } from "@/components/shared/team-logo";
+import { useAuth } from "@/lib/auth-context";
 
 /**
  * Map an API market object (Prisma shape) to the mock Market type the UI expects.
@@ -105,6 +106,7 @@ function mapApiLeaderboardEntry(raw: any, index: number): LeaderboardEntry {
 }
 
 export default function Home() {
+  const { isAuthenticated, login } = useAuth();
   const { data: liveMarketsRaw, isLoading: marketsLoading } = useLiveMarkets();
   const { data: leaderboardRaw, isLoading: leaderboardLoading } = useLeaderboard(1, 5);
 
@@ -115,8 +117,8 @@ export default function Home() {
   const leaderboard: LeaderboardEntry[] = Array.isArray(leaderboardRaw)
     ? leaderboardRaw.map(mapApiLeaderboardEntry)
     : Array.isArray((leaderboardRaw as any)?.data)
-    ? (leaderboardRaw as any).data.map(mapApiLeaderboardEntry)
-    : [];
+      ? (leaderboardRaw as any).data.map(mapApiLeaderboardEntry)
+      : [];
 
   const liveMarket = liveMarkets.length > 0 ? liveMarkets[0] : null;
   const yesPercent = liveMarket ? getYesPercentage(liveMarket) : 50;
@@ -159,16 +161,19 @@ export default function Home() {
             transition={{ delay: 0.3 }}
             className="flex gap-4"
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-[#4ade80] text-emerald-950 font-black px-8 py-4 rounded-xl shadow-xl shadow-emerald-900/40"
-            >
-              Start Predicting Now
-            </motion.button>
+            <Link href="/markets">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-[#4ade80] text-emerald-950 font-black px-8 py-4 rounded-xl shadow-xl shadow-emerald-900/40"
+              >
+                Start Predicting Now
+              </motion.button>
+            </Link>
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="bg-white/10 text-white font-bold px-8 py-4 rounded-xl border border-white/20 hover:bg-white/20 transition-all backdrop-blur-sm"
             >
               How it Works
@@ -400,7 +405,7 @@ export default function Home() {
       )}
 
       {/* ===== HOW IT WORKS ===== */}
-      <section className="py-24 px-6 bg-white">
+      <section id="how-it-works" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <motion.h2
@@ -587,20 +592,18 @@ export default function Home() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.07 }}
-                className={`flex items-center gap-6 p-4 rounded-2xl transition-colors ${
-                  entry.rank === 1
+                className={`flex items-center gap-6 p-4 rounded-2xl transition-colors ${entry.rank === 1
                     ? "bg-slate-50 border border-emerald-100"
                     : "border border-slate-100 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <span
-                  className={`text-2xl font-black w-8 text-center ${
-                    entry.rank === 1
+                  className={`text-2xl font-black w-8 text-center ${entry.rank === 1
                       ? "text-amber-600"
                       : entry.rank === 3
-                      ? "text-amber-700"
-                      : "text-slate-400"
-                  }`}
+                        ? "text-amber-700"
+                        : "text-slate-400"
+                    }`}
                 >
                   {entry.rank}
                 </span>
@@ -675,14 +678,28 @@ export default function Home() {
             >
               Ready to make your call?
             </motion.h2>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-green-600 text-white font-black px-8 py-4 rounded-xl flex items-center gap-3 mx-auto md:mx-0"
-            >
-              Connect Wallet & Start Predicting
-              <Wallet className="w-5 h-5" />
-            </motion.button>
+            {isAuthenticated ? (
+              <Link href="/markets">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-green-600 text-white font-black px-8 py-4 rounded-xl flex items-center gap-3 mx-auto md:mx-0"
+                >
+                  Start Predicting
+                  <Wallet className="w-5 h-5" />
+                </motion.button>
+              </Link>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => login()}
+                className="bg-green-600 text-white font-black px-8 py-4 rounded-xl flex items-center gap-3 mx-auto md:mx-0"
+              >
+                Connect Wallet & Start Predicting
+                <Wallet className="w-5 h-5" />
+              </motion.button>
+            )}
           </div>
 
           {/* Right: brand + hackathon text */}

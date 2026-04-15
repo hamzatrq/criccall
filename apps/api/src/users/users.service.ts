@@ -5,7 +5,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { WireFluidService } from '../wirefluid/wirefluid.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { formatEther } from 'viem';
 
 type Tier = 'new_fan' | 'casual' | 'dedicated' | 'expert' | 'superforecaster';
 
@@ -23,7 +25,42 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly wirefluid: WireFluidService,
   ) {}
+
+  /**
+   * Sync on-chain CALL balance to DB for a user.
+   * Reads balanceOf from CALLToken contract and updates cachedCallBalance + tier.
+   */
+  async syncBalance(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    try {
+      const contract = this.wirefluid.getCallTokenContract();
+      const publicClient = this.wirefluid.getPublicClient();
+
+      const balance = await publicClient.readContract({
+        address: contract.address as `0x${string}`,
+        abi: contract.abi,
+        functionName: 'balanceOf',
+        args: [user.walletAddress as `0x${string}`],
+      });
+
+      const balanceStr = Math.floor(Number(formatEther(balance as bigint))).toString();
+      const tier = computeTier(balanceStr);
+
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data: { cachedCallBalance: balanceStr, tier },
+      });
+
+      return { walletAddress: updated.walletAddress, cachedCallBalance: updated.cachedCallBalance, tier: updated.tier };
+    } catch (error) {
+      // If chain read fails, return current cached values
+      return { walletAddress: user.walletAddress, cachedCallBalance: user.cachedCallBalance, tier: user.tier };
+    }
+  }
 
   /** Full profile for the authenticated user */
   async getMe(userId: string) {

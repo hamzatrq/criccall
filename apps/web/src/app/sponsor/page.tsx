@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPKR, formatCALL } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -66,9 +66,36 @@ export default function SponsorPage() {
   const [dealMinCall, setDealMinCall] = useState("");
   const [dealMaxRedemptions, setDealMaxRedemptions] = useState("");
   const [dealCouponCode, setDealCouponCode] = useState("");
+  const [dealType, setDealType] = useState("coupon_code");
+  const [dealUrl, setDealUrl] = useState("");
+  const [dealStartsAt, setDealStartsAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [dealExpiresAt, setDealExpiresAt] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().slice(0, 16);
+  });
   const [dealSubmitting, setDealSubmitting] = useState(false);
   const [dealSuccess, setDealSuccess] = useState(false);
   const [dealError, setDealError] = useState<string | null>(null);
+
+  // Image upload state
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 100 * 1024) { alert("Logo too large. Max 100KB."); return; }
+    setLogoPreview(URL.createObjectURL(file));
+  };
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 300 * 1024) { alert("Banner too large. Max 300KB."); return; }
+    setBannerPreview(URL.createObjectURL(file));
+  };
 
   // Populate form from API profile data
   useEffect(() => {
@@ -131,10 +158,14 @@ export default function SponsorPage() {
     try {
       await api.createDeal({
         title: dealTitle,
-        description: dealDescription,
-        minCallBalance: Number(dealMinCall) || 0,
-        maxRedemptions: Number(dealMaxRedemptions) || 0,
-        couponCode: dealCouponCode,
+        description: dealDescription || undefined,
+        minCall: Number(dealMinCall) || 0,
+        dealType: dealType,
+        couponCode: dealCouponCode || undefined,
+        dealUrl: dealUrl || undefined,
+        maxRedemptions: Number(dealMaxRedemptions) || undefined,
+        startsAt: new Date(dealStartsAt).toISOString(),
+        expiresAt: new Date(dealExpiresAt).toISOString(),
       });
       setDealSuccess(true);
       setDealTitle("");
@@ -142,6 +173,7 @@ export default function SponsorPage() {
       setDealMinCall("");
       setDealMaxRedemptions("");
       setDealCouponCode("");
+      setDealUrl("");
       setTimeout(() => setDealSuccess(false), 3000);
     } catch (err: any) {
       setDealError(err.message || "Failed to create deal");
@@ -255,17 +287,22 @@ export default function SponsorPage() {
                     <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                       <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Logo</h3>
                       <div className="flex flex-col items-center">
-                        <div className="relative group mb-3">
-                          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white border-4 border-white shadow-md">
-                            {brandProfile?.brandLogo || brandName?.slice(0, 2)?.toUpperCase() || "BR"}
+                        <div className="relative group mb-3" onClick={() => logoInputRef.current?.click()}>
+                          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white border-4 border-white shadow-md overflow-hidden">
+                            {logoPreview ? (
+                              <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                            ) : (
+                              brandProfile?.brandLogo || brandName?.slice(0, 2)?.toUpperCase() || "BR"
+                            )}
                           </div>
                           <button className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <Camera className="w-6 h-6 text-white" />
                           </button>
                         </div>
+                        <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
                         <p className="text-[10px] text-slate-400">400x400px · Max 100KB</p>
                         <p className="text-[10px] text-slate-400">PNG, WebP, or SVG</p>
-                        <button className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                        <button onClick={() => logoInputRef.current?.click()} className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
                           <Upload className="w-3 h-3" /> Upload New Logo
                         </button>
                       </div>
@@ -274,11 +311,21 @@ export default function SponsorPage() {
                     {/* Banner Upload */}
                     <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
                       <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Brand Banner</h3>
-                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group aspect-[3/1] flex flex-col items-center justify-center">
-                        <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400 transition-colors mb-2" />
-                        <p className="text-xs text-slate-400 group-hover:text-blue-500">Click to upload banner</p>
-                        <p className="text-[10px] text-slate-300 mt-1">1200x400px · Max 300KB</p>
+                      <div
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group aspect-[3/1] flex flex-col items-center justify-center overflow-hidden"
+                      >
+                        {bannerPreview ? (
+                          <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
+                        ) : (
+                          <>
+                            <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-blue-400 transition-colors mb-2" />
+                            <p className="text-xs text-slate-400 group-hover:text-blue-500">Click to upload banner</p>
+                            <p className="text-[10px] text-slate-300 mt-1">1200x400px · Max 300KB</p>
+                          </>
+                        )}
                       </div>
+                      <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
                     </div>
 
                     {/* Verification Status */}
@@ -751,6 +798,18 @@ export default function SponsorPage() {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Deal Type</label>
+                    <select
+                      value={dealType}
+                      onChange={(e) => setDealType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                    >
+                      <option value="coupon_code">Coupon Code</option>
+                      <option value="link">Link</option>
+                      <option value="qr_code">QR Code</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Coupon Code</label>
                     <input
                       type="text"
@@ -759,6 +818,36 @@ export default function SponsorPage() {
                       placeholder="CRICCALL20"
                       className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Deal URL</label>
+                    <input
+                      type="url"
+                      value={dealUrl}
+                      onChange={(e) => setDealUrl(e.target.value)}
+                      placeholder="https://yourbrand.com/deal"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Starts At</label>
+                      <input
+                        type="datetime-local"
+                        value={dealStartsAt}
+                        onChange={(e) => setDealStartsAt(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Expires At</label>
+                      <input
+                        type="datetime-local"
+                        value={dealExpiresAt}
+                        onChange={(e) => setDealExpiresAt(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                      />
+                    </div>
                   </div>
 
                   {dealError && (

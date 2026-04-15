@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatCALL } from "@/data/mock";
 import { useAuth } from "@/lib/auth-context";
 import { useDeals } from "@/hooks/use-api";
+import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { api } from "@/lib/api";
 import {
   Lock,
@@ -40,7 +41,10 @@ export default function DealsPage() {
   const { data: dealsData, isLoading } = useDeals({ category: categoryParam });
 
   const allDeals = dealsData?.data || dealsData || [];
-  const callBalance = Number(user?.cachedCallBalance || 0);
+  const { data: onChainBalance } = useCallBalance();
+  const callBalance = onChainBalance
+    ? Math.floor(Number(formatCallBalance(onChainBalance as bigint)))
+    : Number(user?.cachedCallBalance || 0);
 
   const canUnlock = (minCall: number) => isAuthenticated && callBalance >= minCall;
 

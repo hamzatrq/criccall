@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { formatCALL } from "@/lib/utils";
-import {
-  getTierLabel,
-  getTierColor,
-} from "@/data/mock";
+import { formatCALL, getTierLabel, getTierColor } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { useLeaderboard } from "@/hooks/use-api";
 import {
   Crown,
@@ -29,6 +26,7 @@ const rankEmojis: Record<number, string> = {
 export default function LeaderboardPage() {
   const { user, isAuthenticated } = useAuth();
   const [page, setPage] = useState(1);
+  const [showReferralBanner, setShowReferralBanner] = useState(false);
   const limit = 20;
   const { data: leaderboardData, isLoading } = useLeaderboard(page, limit);
 
@@ -39,7 +37,10 @@ export default function LeaderboardPage() {
   const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd visually
   const topThree = entries.slice(0, 3);
 
-  const callBalance = Number(user?.cachedCallBalance || 0);
+  const { data: onChainBal } = useCallBalance();
+  const callBalance = onChainBal
+    ? Math.floor(Number(formatCallBalance(onChainBal as bigint)))
+    : Number(user?.cachedCallBalance || 0);
   const tier = user?.tier || "new_fan";
 
   return (
@@ -354,10 +355,24 @@ export default function LeaderboardPage() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setShowReferralBanner(true);
+                        setTimeout(() => setShowReferralBanner(false), 3000);
+                      }}
                       className="bg-amber-500 hover:bg-amber-600 text-green-950 px-6 py-2.5 rounded-full font-black text-sm uppercase tracking-wide transition-colors shadow-md"
                     >
                       Invite Now
                     </motion.button>
+                    {showReferralBanner && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="mt-3 text-xs text-amber-300 bg-green-900/50 rounded-lg px-3 py-2 text-center"
+                      >
+                        Coming soon! Referral system launching after PSL 2026.
+                      </motion.p>
+                    )}
                   </div>
 
                   {/* Decorative background element */}

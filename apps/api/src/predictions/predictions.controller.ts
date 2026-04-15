@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   ParseIntPipe,
   Query,
@@ -10,6 +12,7 @@ import { PredictionsService } from './predictions.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 /**
  * Public predictions endpoints (no auth required).
@@ -27,6 +30,33 @@ export class PredictionsPublicController {
     @Param('marketId', ParseIntPipe) marketId: number,
   ) {
     return this.predictionsService.getMarketSummary(marketId);
+  }
+}
+
+/**
+ * Authenticated user predictions endpoints.
+ */
+@Controller('predictions')
+@UseGuards(JwtAuthGuard)
+export class PredictionsUserController {
+  constructor(private readonly predictionsService: PredictionsService) {}
+
+  /**
+   * POST /predictions/record
+   * Record a prediction after successful on-chain transaction.
+   */
+  @Post('record')
+  async recordPrediction(
+    @CurrentUser() user: any,
+    @Body() body: { marketId: number; position: string; amount: string; txHash: string },
+  ) {
+    return this.predictionsService.recordPrediction(
+      user.sub,
+      body.marketId,
+      body.position,
+      body.amount,
+      body.txHash,
+    );
   }
 }
 
