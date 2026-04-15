@@ -25,9 +25,9 @@ COPY apps/api/ apps/api/
 # Generate Prisma client
 RUN cd apps/api && npx prisma generate
 
-# Build the NestJS API and verify output exists
-RUN cd apps/api && npx nest build && \
-    test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" && exit 1)
+# Build the NestJS API
+RUN pnpm --filter api build && \
+    test -f apps/api/dist/src/main.js || (echo "ERROR: build output not found" && ls -laR apps/api/dist/ 2>/dev/null && exit 1)
 
 # ── Production stage ─────────────────────────────────────────
 FROM node:22-slim AS production
@@ -52,4 +52,4 @@ COPY --from=base /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 
 WORKDIR /app/apps/api
 EXPOSE 4000
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
