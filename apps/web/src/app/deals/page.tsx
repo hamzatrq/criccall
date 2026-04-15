@@ -68,13 +68,19 @@ export default function DealsPage() {
   const [claimedDeal, setClaimedDeal] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [redeemCode, setRedeemCode] = useState<string>("");
-  const [redeemError, setRedeemError] = useState<string | null>(null);
+  const [redeemError, setRedeemError] = useState<Record<string, string>>({});
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
   const categoryParam = activeCategory === "All" ? undefined : activeCategory.toLowerCase();
   const { data: dealsData, isLoading } = useDeals({ category: categoryParam });
 
-  const allDeals = dealsData?.data || dealsData || [];
+  const rawDeals = dealsData?.data || dealsData || [];
+  // Show eligible deals first
+  const allDeals = [...rawDeals].sort((a: any, b: any) => {
+    const aOk = canUnlock(a.minCall || 0) ? 0 : 1;
+    const bOk = canUnlock(b.minCall || 0) ? 0 : 1;
+    return aOk - bOk;
+  });
   const { data: onChainBalance } = useCallBalance();
   const callBalance = onChainBalance
     ? Math.floor(Number(formatCallBalance(onChainBalance as bigint)))
@@ -84,18 +90,25 @@ export default function DealsPage() {
 
   const handleRedeem = async (dealId: string) => {
     setRedeeming(dealId);
-    setRedeemError(null);
+    setRedeemError((prev) => ({ ...prev, [dealId]: "" }));
     try {
       const result = await api.redeemDeal(dealId);
-      const code = result?.code || result?.redeemCode;
+      const code = result?.couponCode || result?.code || result?.redeemCode;
       if (!code) {
-        setRedeemError("Redemption failed. Please try again.");
+        setRedeemError((prev) => ({ ...prev, [dealId]: "Redemption failed. Please try again." }));
         return;
       }
       setRedeemCode(code);
       setClaimedDeal(dealId);
-    } catch {
-      setRedeemError("Redemption failed. Please try again.");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("409") || msg.toLowerCase().includes("already")) {
+        setRedeemError((prev) => ({ ...prev, [dealId]: "You already redeemed this deal." }));
+      } else if (msg.includes("400")) {
+        setRedeemError((prev) => ({ ...prev, [dealId]: "Not eligible for this deal." }));
+      } else {
+        setRedeemError((prev) => ({ ...prev, [dealId]: "Redemption failed. Please try again." }));
+      }
     } finally {
       setRedeeming(null);
     }
@@ -333,8 +346,8 @@ export default function DealsPage() {
                         </span>
                       </div>
                     )}
-                    {redeemError && redeeming !== deal.id && !claimed && (
-                      <p className="text-xs text-red-600 font-medium mt-2">{redeemError}</p>
+                    {redeemError[deal.id] && redeeming !== deal.id && !claimed && (
+                      <p className="text-xs text-red-600 font-medium mt-2">{redeemError[deal.id]}</p>
                     )}
                   </div>
                 </div>
