@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Alfa_Slab_One } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { Footer } from "@/components/layout/footer";
 import { Providers } from "@/components/layout/providers";
 
 const inter = Inter({
@@ -51,6 +52,7 @@ export default function RootLayout({
         <Providers>
           <Header />
           <main className="flex-1 pb-20 md:pb-0">{children}</main>
+          <Footer />
           <BottomNav />
         </Providers>
       </body>

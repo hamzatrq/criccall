@@ -717,10 +717,10 @@ export default function Home() {
         {/* Bottom: copyright + links */}
         <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row justify-between items-center text-sm font-normal text-emerald-200">
           <p>© 2026 CricCall. Shariah-Compliant Cricket Predictions.</p>
-          <div className="flex gap-8 mt-6 md:mt-0 text-emerald-300/70">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Responsible Play</span>
+          <div className="flex gap-8 mt-6 md:mt-0">
+            <Link href="/privacy" className="text-emerald-300/70 hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-emerald-300/70 hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/responsible-play" className="text-emerald-300/70 hover:text-white transition-colors">Responsible Play</Link>
           </div>
         </div>
       </footer>
