@@ -28,6 +28,21 @@ const config: HardhatUserConfig = {
         : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      wirefluid: "empty",
+    },
+    customChains: [
+      {
+        network: "wirefluid",
+        chainId: 92533,
+        urls: {
+          apiURL: "https://wirefluidscan.com/api",
+          browserURL: "https://wirefluidscan.com",
+        },
+      },
+    ],
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS === "true",
     currency: "USD",

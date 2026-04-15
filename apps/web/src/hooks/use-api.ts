@@ -35,6 +35,14 @@ export function useMarketSponsors(id: string) {
   });
 }
 
+export function useMyPositions(id: string) {
+  return useQuery({
+    queryKey: ["market", id, "positions"],
+    queryFn: () => api.getMyPositions(id),
+    enabled: !!id && !!api.getToken(),
+  });
+}
+
 // Leaderboard
 export function useLeaderboard(page = 1, limit = 20) {
   return useQuery({

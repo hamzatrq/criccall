@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMarket, useMarketSponsors } from "@/hooks/use-api";
+import { useMarket, useMarketSponsors, useMyPositions } from "@/hooks/use-api";
 import { useAuth } from "@/lib/auth-context";
 import {
   getYesPercentage,
@@ -44,6 +44,7 @@ export default function MarketDetailPage() {
   // On-chain hooks (must be before any early returns)
   const { predict, isPending: predictPending, isConfirming: predictConfirming, isSuccess: predictSuccess, error: predictError, hash: predictHash } = usePredict();
   const { data: onChainBalance } = useCallBalance();
+  const { data: myPositions } = useMyPositions(id);
 
   // When on-chain tx succeeds, show confirmation, record in backend, sync balance
   useEffect(() => {
@@ -98,14 +99,23 @@ export default function MarketDetailPage() {
 
   const selectedPool = selectedPosition === "yes" ? yesPoolNum : noPoolNum;
   const selectedPercent = selectedPosition === "yes" ? yesPercent : noPercent;
-  const estimatedReturn = selectedPercent > 0
-    ? Math.round(amount * (100 / selectedPercent))
-    : 0;
-  const estimatedPKR = selectedPool > 0
-    ? Math.round((amount / selectedPool) * totalPrizeNum)
-    : 0;
+  const totalPool = yesPoolNum + noPoolNum;
+  // If you're the only predictor on your side, you get everything
+  const estimatedReturn = totalPool === 0
+    ? amount // First predictor gets back what they put in (no losers yet)
+    : Math.round(amount * ((totalPool + amount) / (selectedPool + amount)));
+  // PKR: your share of the prize pool proportional to your CALL on winning side
+  const estimatedPKR = selectedPool === 0
+    ? totalPrizeNum // First predictor on this side gets the full prize
+    : Math.round((amount / (selectedPool + amount)) * totalPrizeNum);
 
   const maxBalance = onChainBalance ? Math.floor(Number(formatCallBalance(onChainBalance as bigint))) : 100;
+
+  // Summarise user's existing position
+  const positions: any[] = myPositions ?? [];
+  const myYes = positions.filter((p: any) => p.position === "yes").reduce((s: number, p: any) => s + Number(p.amount), 0);
+  const myNo = positions.filter((p: any) => p.position === "no").reduce((s: number, p: any) => s + Number(p.amount), 0);
+  const hasPosition = myYes > 0 || myNo > 0;
 
   const handlePredict = () => {
     const onChainId = (market as any).onChainId;
@@ -299,6 +309,28 @@ export default function MarketDetailPage() {
               <p className="text-sm text-slate-500">
                 Sign in with your wallet to make predictions on this market.
               </p>
+            </div>
+          )}
+
+          {/* Your Position Banner */}
+          {isAuthenticated && hasPosition && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200/50 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-blue-900">Your Position</p>
+                <div className="flex gap-4 mt-1">
+                  {myYes > 0 && (
+                    <span className="text-xs font-semibold text-green-700">
+                      YES: {myYes} CALL
+                    </span>
+                  )}
+                  {myNo > 0 && (
+                    <span className="text-xs font-semibold text-red-600">
+                      NO: {myNo} CALL
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -553,10 +585,10 @@ export default function MarketDetailPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-black text-green-700">TITLE SPONSOR</p>
                     <p className="text-sm font-bold text-slate-900">
                       {titleSponsor.name || titleSponsor.brandName}
                     </p>
+                    <p className="text-xs font-medium text-green-700">Title Sponsor</p>
                   </div>
                 </div>
               )}
@@ -573,10 +605,10 @@ export default function MarketDetailPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-black text-amber-600">GOLD SPONSOR</p>
                     <p className="text-sm font-bold text-slate-900">
                       {goldSponsor.name || goldSponsor.brandName}
                     </p>
+                    <p className="text-xs font-medium text-amber-600">Gold Sponsor</p>
                   </div>
                 </div>
               )}
@@ -590,8 +622,10 @@ export default function MarketDetailPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-black text-slate-500">PLATFORM</p>
-                    <p className="text-sm font-bold text-slate-900">CricCall App</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {platformSponsor.name || platformSponsor.brandName || "CricCall"}
+                    </p>
+                    <p className="text-xs font-medium text-slate-500">Platform</p>
                   </div>
                 </div>
               )}
