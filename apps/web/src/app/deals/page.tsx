@@ -31,42 +31,35 @@ const categories = [
   "Entertainment",
 ] as const;
 
-const brandImages: Record<string, string> = {
-  foodpanda: "/brand-images/foodpanda-logo.jpeg",
-  kfc: "/brand-images/kfc-logo.png",
-  jazz: "/brand-images/jazz.jpeg",
-  daraz: "/brand-images/daraz-logo.jpeg",
-  ptcl: "/brand-images/ptcl-logo.jpeg",
-  psl: "/brand-images/psl-logo.jpeg",
+const brandData: Record<string, { image: string; color: string; name: string }> = {
+  foodpanda: { image: "/brand-images/foodpanda-logo.jpeg", color: "#D70F64", name: "Foodpanda" },
+  kfc: { image: "/brand-images/kfc-logo.png", color: "#E4002B", name: "KFC" },
+  jazz: { image: "/brand-images/jazz.jpeg", color: "#ED1C24", name: "Jazz" },
+  daraz: { image: "/brand-images/daraz-logo.jpeg", color: "#F85606", name: "Daraz" },
+  ptcl: { image: "/brand-images/ptcl-logo.jpeg", color: "#00A651", name: "PTCL" },
+  psl: { image: "/brand-images/psl-logo.jpeg", color: "#00A651", name: "PSL" },
+  vip: { image: "/brand-images/psl-logo.jpeg", color: "#1a472a", name: "PSL 2026" },
 };
 
-const brandColors: Record<string, string> = {
-  foodpanda: "#D70F64",
-  kfc: "#E4002B",
-  jazz: "#ED1C24",
-  daraz: "#F85606",
-  ptcl: "#00A651",
-  psl: "#00A651",
-};
+function matchBrand(deal: any): { image: string | null; color: string; name: string } {
+  // Search across all text fields for brand keywords
+  const searchText = [
+    deal.title,
+    deal.description,
+    deal.brandName,
+    deal.brand?.brandName,
+  ].filter(Boolean).join(" ").toLowerCase();
 
-function getBrandImage(deal: any): string | null {
-  const name = (deal.brandName || deal.brand?.brandName || "").toLowerCase();
-  for (const [key, path] of Object.entries(brandImages)) {
-    if (name.includes(key)) return path;
+  for (const [key, data] of Object.entries(brandData)) {
+    if (searchText.includes(key)) return data;
   }
-  return deal.imageUrl || deal.brand?.brandLogo || null;
-}
 
-function getBrandColor(deal: any): string {
-  const name = (deal.brandName || deal.brand?.brandName || "").toLowerCase();
-  for (const [key, color] of Object.entries(brandColors)) {
-    if (name.includes(key)) return color;
-  }
-  return deal.brandColor || "#15803d";
-}
-
-function getBrandName(deal: any): string {
-  return deal.brandName || deal.brand?.brandName || "Brand";
+  // Fallback
+  return {
+    image: deal.imageUrl || null,
+    color: deal.brandColor || "#15803d",
+    name: deal.brandName || deal.brand?.brandName || "CricCall",
+  };
 }
 
 export default function DealsPage() {
@@ -183,9 +176,10 @@ export default function DealsPage() {
             const minCall = deal.minCall || 0;
             const unlocked = canUnlock(minCall);
             const claimed = claimedDeal === deal.id;
-            const brandName = getBrandName(deal);
-            const brandColor = getBrandColor(deal);
-            const brandImage = getBrandImage(deal);
+            const brand = matchBrand(deal);
+            const brandName = brand.name;
+            const brandColor = brand.color;
+            const brandImage = brand.image;
 
             return (
               <motion.div
