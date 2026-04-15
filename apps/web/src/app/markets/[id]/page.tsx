@@ -27,8 +27,24 @@ import {
 } from "lucide-react";
 import { usePredict, useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { api } from "@/lib/api";
+import Image from "next/image";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+function SponsorLogo({ logo, name, bg, fg }: { logo?: string; name: string; bg: string; fg: string }) {
+  const isUrl = logo && (logo.startsWith("/") || logo.startsWith("http"));
+  return (
+    <div className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${bg}`}>
+      {isUrl ? (
+        <Image src={logo} alt={name} width={40} height={40} className="object-contain" />
+      ) : (
+        <span className={`text-xs font-bold ${fg}`}>
+          {logo || name?.slice(0, 2)?.toUpperCase() || "??"}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function MarketDetailPage() {
   const params = useParams();
@@ -592,14 +608,12 @@ export default function MarketDetailPage() {
               {/* Title Sponsor */}
               {titleSponsor && (
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: titleSponsor.bannerColor || "#00A651" }}
-                    >
-                      {titleSponsor.sponsorLogo || titleSponsor.logo || titleSponsor.sponsorName?.slice(0, 4)}
-                    </span>
-                  </div>
+                  <SponsorLogo
+                    logo={titleSponsor.sponsorLogo || titleSponsor.logo}
+                    name={titleSponsor.sponsorName || titleSponsor.name || titleSponsor.brandName}
+                    bg="bg-slate-100"
+                    fg="text-green-700"
+                  />
                   <div>
                     <p className="text-sm font-bold text-slate-900">
                       {titleSponsor.sponsorName || titleSponsor.name || titleSponsor.brandName}
@@ -612,14 +626,12 @@ export default function MarketDetailPage() {
               {/* Gold Sponsor */}
               {goldSponsor && (
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center p-2">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: goldSponsor.bannerColor || "#E4002B" }}
-                    >
-                      {goldSponsor.sponsorLogo || goldSponsor.logo || goldSponsor.sponsorName?.slice(0, 4)}
-                    </span>
-                  </div>
+                  <SponsorLogo
+                    logo={goldSponsor.sponsorLogo || goldSponsor.logo}
+                    name={goldSponsor.sponsorName || goldSponsor.name || goldSponsor.brandName}
+                    bg="bg-slate-100"
+                    fg="text-amber-600"
+                  />
                   <div>
                     <p className="text-sm font-bold text-slate-900">
                       {goldSponsor.sponsorName || goldSponsor.name || goldSponsor.brandName}
@@ -632,11 +644,12 @@ export default function MarketDetailPage() {
               {/* Platform */}
               {platformSponsor && (
                 <div className="flex items-center gap-4 opacity-80">
-                  <div className="w-12 h-12 bg-green-900 rounded-lg flex items-center justify-center p-2">
-                    <span className="text-white font-black text-xs">
-                      {platformSponsor.sponsorLogo || platformSponsor.logo || "CC"}
-                    </span>
-                  </div>
+                  <SponsorLogo
+                    logo={platformSponsor.sponsorLogo || platformSponsor.logo}
+                    name={platformSponsor.sponsorName || platformSponsor.name || platformSponsor.brandName || "CricCall"}
+                    bg="bg-green-900"
+                    fg="text-white"
+                  />
                   <div>
                     <p className="text-sm font-bold text-slate-900">
                       {platformSponsor.sponsorName || platformSponsor.name || platformSponsor.brandName || "CricCall"}
