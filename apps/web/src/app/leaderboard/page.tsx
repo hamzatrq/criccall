@@ -393,10 +393,10 @@ export default function LeaderboardPage() {
                       </div>
                       <div>
                         <p className="text-2xl font-black text-amber-400">
-                          &mdash;
+                          18
                         </p>
                         <p className="text-[11px] text-green-100/50 uppercase tracking-wider">
-                          PKR Earned
+                          Live Markets
                         </p>
                       </div>
                     </div>

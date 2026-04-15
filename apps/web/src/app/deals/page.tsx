@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatCALL } from "@/data/mock";
+import { formatCALL } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useDeals } from "@/hooks/use-api";
 import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";

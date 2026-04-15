@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPKR } from "@/data/mock";
+import { formatPKR } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useMyRewards, useUnclaimedRewards } from "@/hooks/use-api";
 import { api } from "@/lib/api";

@@ -542,7 +542,7 @@ export default function Home() {
               transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
               className="absolute -bottom-6 -right-6 w-32 h-32 bg-green-600 rounded-full flex items-center justify-center text-white font-black text-center text-sm p-4 z-20 shadow-xl"
             >
-              PSL 2026 OFFICIAL PARTNER
+              LIVE FOR PSL 2026
             </motion.div>
           </div>
         </div>
@@ -717,31 +717,10 @@ export default function Home() {
         {/* Bottom: copyright + links */}
         <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row justify-between items-center text-sm font-normal text-emerald-200">
           <p>© 2026 CricCall. Shariah-Compliant Cricket Predictions.</p>
-          <div className="flex gap-8 mt-6 md:mt-0">
-            <a
-              className="hover:text-white underline transition-all"
-              href="#"
-            >
-              Privacy Policy
-            </a>
-            <a
-              className="hover:text-white underline transition-all"
-              href="#"
-            >
-              Terms of Service
-            </a>
-            <a
-              className="hover:text-white underline transition-all"
-              href="#"
-            >
-              Responsible Play
-            </a>
-            <a
-              className="hover:text-white underline transition-all"
-              href="#"
-            >
-              Contact Us
-            </a>
+          <div className="flex gap-8 mt-6 md:mt-0 text-emerald-300/70">
+            <span>Privacy Policy</span>
+            <span>Terms of Service</span>
+            <span>Responsible Play</span>
           </div>
         </div>
       </footer>

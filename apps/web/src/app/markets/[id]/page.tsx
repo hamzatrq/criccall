@@ -309,6 +309,9 @@ export default function MarketDetailPage() {
               <p className="text-sm text-slate-500">
                 Sign in with your wallet to make predictions on this market.
               </p>
+              <p className="text-xs text-slate-400 mt-3">
+                Claim 100 free CALL tokens daily from your Profile, then predict here.
+              </p>
             </div>
           )}
 

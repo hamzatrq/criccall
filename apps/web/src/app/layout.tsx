@@ -28,14 +28,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CricCall — Predict Cricket. Win Rewards.",
     description: "Free to play. Shariah compliant. Win real PKR prizes from brand sponsors.",
-    images: ["/logo.png"],
     siteName: "CricCall",
   },
   twitter: {
     card: "summary_large_image",
     title: "CricCall — Predict Cricket. Win Rewards.",
     description: "Free to play. Shariah compliant. Win real PKR prizes from brand sponsors.",
-    images: ["/logo.png"],
   },
 };
 
