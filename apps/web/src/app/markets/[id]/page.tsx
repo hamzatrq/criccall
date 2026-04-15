@@ -100,6 +100,7 @@ export default function MarketDetailPage() {
   const isLive = market.match?.status === "live";
   const isUpcoming = market.match?.status === "upcoming";
   const isResolved = market.state === "resolved";
+  const isLocked = market.state === "locked" || new Date(market.lockTime) <= new Date();
 
   const sponsors: any[] = sponsorsData ?? market.campaigns ?? [];
   const titleSponsor = sponsors.find((s: any) => s.tier === "title");
@@ -297,12 +298,14 @@ export default function MarketDetailPage() {
               </span>
             </div>
             <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1.5 text-slate-900 mb-1">
+              <div className={`flex items-center gap-1.5 mb-1 ${isLocked && !isResolved ? "text-amber-600" : "text-slate-900"}`}>
                 <Clock className="w-4 h-4" />
-                <span className="font-bold text-sm">{timeUntil(market.lockTime)}</span>
+                <span className="font-bold text-sm">
+                  {isLocked ? "Locked" : timeUntil(market.lockTime)}
+                </span>
               </div>
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
-                Locks In
+                {isLocked ? "Status" : "Locks In"}
               </span>
             </div>
           </div>
@@ -318,7 +321,23 @@ export default function MarketDetailPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6"
         >
-          {!isAuthenticated && !isResolved && (
+          {/* Market Locked Banner */}
+          {isLocked && !isResolved && (
+            <div className="text-center py-12">
+              <Clock className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                Predictions Closed
+              </h3>
+              <p className="text-sm text-slate-500">
+                This market locked at {new Date(market.lockTime).toLocaleString()}. No more predictions can be placed.
+              </p>
+              <p className="text-xs text-slate-400 mt-2">
+                Check back for the result once the match is resolved.
+              </p>
+            </div>
+          )}
+
+          {!isAuthenticated && !isResolved && !isLocked && (
             <div className="text-center py-12">
               <LogIn className="w-10 h-10 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-slate-900 mb-2">
@@ -355,7 +374,7 @@ export default function MarketDetailPage() {
             </div>
           )}
 
-          {isAuthenticated && !isResolved && !predicted && (
+          {isAuthenticated && !isResolved && !isLocked && !predicted && (
             <>
               <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-green-700 flex items-center justify-center">

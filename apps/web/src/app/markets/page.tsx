@@ -29,7 +29,8 @@ function StatusBadge({ market }: { market: any }) {
   const matchStatus = market.match?.status;
   const isLive = matchStatus === "live" && market.state !== "resolved";
   const isResolved = market.state === "resolved";
-  const isUpcoming = matchStatus === "upcoming" && market.state === "open";
+  const isLocked = !isResolved && (market.state === "locked" || new Date(market.lockTime) <= new Date());
+  const isUpcoming = matchStatus === "upcoming" && market.state === "open" && !isLocked;
 
   if (isLive) {
     return (
@@ -44,6 +45,14 @@ function StatusBadge({ market }: { market: any }) {
     return (
       <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-1 rounded">
         RESOLVED
+      </span>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded">
+        LOCKED
       </span>
     );
   }
