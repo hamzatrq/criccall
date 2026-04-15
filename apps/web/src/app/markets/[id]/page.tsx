@@ -117,10 +117,12 @@ export default function MarketDetailPage() {
   const myNo = positions.filter((p: any) => p.position === "no").reduce((s: number, p: any) => s + Number(p.amount), 0);
   const hasPosition = myYes > 0 || myNo > 0;
 
+  const insufficientBalance = amount > maxBalance;
+
   const handlePredict = () => {
+    if (insufficientBalance) return;
     const onChainId = (market as any).onChainId;
     if (onChainId == null) {
-      // Fallback: if no on-chain ID, just show confirmation (demo mode)
       setPredicted(true);
       return;
     }
@@ -475,11 +477,22 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Predict Button */}
+              {insufficientBalance && (
+                <div className="mt-6 flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>
+                    {maxBalance === 0
+                      ? "You have no CALL tokens. Claim your free daily tokens from your Profile first."
+                      : `You only have ${maxBalance} CALL. Lower your amount or claim more from your Profile.`}
+                  </span>
+                </div>
+              )}
+
               <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: insufficientBalance ? 1 : 1.01 }}
+                whileTap={{ scale: insufficientBalance ? 1 : 0.98 }}
                 onClick={handlePredict}
-                disabled={predictPending || predictConfirming}
+                disabled={predictPending || predictConfirming || insufficientBalance}
                 className="w-full mt-8 bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg shadow-green-700/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-60"
               >
                 {predictPending ? (
