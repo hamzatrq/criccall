@@ -1,5 +1,4 @@
-import { http, createConfig } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { defineChain } from "viem";
 
 export const wirefluid = defineChain({
@@ -17,10 +16,8 @@ export const wirefluid = defineChain({
   testnet: true,
 });
 
-export const wagmiConfig = createConfig({
+export const wagmiConfig = getDefaultConfig({
+  appName: "CricCall",
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID || "PLACEHOLDER",
   chains: [wirefluid],
-  connectors: [injected({ target: "metaMask" })],
-  transports: {
-    [wirefluid.id]: http(),
-  },
 });

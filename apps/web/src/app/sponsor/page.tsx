@@ -33,28 +33,10 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useConnect, useAccount, useSwitchChain } from "wagmi";
-import { wirefluid, wagmiConfig } from "@/lib/wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function SponsorPage() {
   const { user, isAuthenticated, isLoading, login } = useAuth();
-  const { connect } = useConnect();
-  const { isConnected, chainId } = useAccount();
-  const { switchChain } = useSwitchChain();
-
-  const handleConnect = async () => {
-    try {
-      if (!isConnected) {
-        connect({ connector: wagmiConfig.connectors[0] });
-      } else if (chainId !== wirefluid.id) {
-        switchChain({ chainId: wirefluid.id });
-      } else {
-        await login();
-      }
-    } catch (e) {
-      console.error("Connection failed:", e);
-    }
-  };
 
   // Access gate: not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -68,13 +50,9 @@ export default function SponsorPage() {
           <p className="text-slate-500 text-sm mb-8">
             Connect your wallet to access the sponsor dashboard.
           </p>
-          <button
-            onClick={handleConnect}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl text-sm hover:bg-emerald-700 transition-colors"
-          >
-            <Wallet className="w-4 h-4" />
-            Connect Wallet
-          </button>
+          <div className="inline-flex">
+            <ConnectButton />
+          </div>
         </div>
       </div>
     );

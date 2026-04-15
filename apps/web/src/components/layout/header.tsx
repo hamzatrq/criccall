@@ -11,8 +11,8 @@ import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { useUnreadCount, useNotifications } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useConnect, useAccount, useSwitchChain } from "wagmi";
-import { wirefluid, wagmiConfig } from "@/lib/wagmi";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const navLinks = [
   { href: "/markets", label: "Markets" },
@@ -24,7 +24,6 @@ const navLinks = [
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [pendingLogin, setPendingLogin] = useState(false);
   const { user, isAuthenticated, login, logout, isLoading } = useAuth();
   const pathname = usePathname();
   const { data: unreadData } = useUnreadCount();
@@ -61,53 +60,16 @@ export function Header() {
     if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
   };
-  const { connect } = useConnect();
-  const { isConnected, address, chainId } = useAccount();
-  const { switchChain } = useSwitchChain();
+  const { isConnected, address } = useAccount();
   const { data: onChainBalance } = useCallBalance();
   const userRole = user?.role;
 
-  // When wallet connects and we have a pending login, switch to WireFluid then login
+  // Auto-trigger SIWE login when wallet connects but user isn't authenticated
   useEffect(() => {
-    if (pendingLogin && isConnected && address) {
-      const doLogin = async () => {
-        try {
-          // Switch to WireFluid if not already on it
-          if (chainId !== wirefluid.id) {
-            switchChain({ chainId: wirefluid.id });
-            // Wait a moment for chain switch to complete
-            await new Promise((r) => setTimeout(r, 1500));
-          }
-          await login();
-        } catch (e) {
-          console.error("SIWE login failed:", e);
-        } finally {
-          setPendingLogin(false);
-        }
-      };
-      doLogin();
+    if (isConnected && address && !isAuthenticated && !isLoading) {
+      login().catch((e) => console.error("SIWE login failed:", e));
     }
-  }, [pendingLogin, isConnected, address, chainId, switchChain, login]);
-
-  const handleConnect = async () => {
-    try {
-      if (!isConnected) {
-        // First connect wallet, then chain switch + login triggered by useEffect
-        setPendingLogin(true);
-        connect({ connector: wagmiConfig.connectors[0] });
-      } else if (chainId !== wirefluid.id) {
-        // Connected but wrong chain — switch first, then login
-        setPendingLogin(true);
-        switchChain({ chainId: wirefluid.id });
-      } else {
-        // Already connected to WireFluid, just do SIWE login
-        await login();
-      }
-    } catch (e) {
-      console.error("Connection failed:", e);
-      setPendingLogin(false);
-    }
-  };
+  }, [isConnected, address, isAuthenticated, isLoading, login]);
 
   return (
     <header className="bg-[#14532d] sticky top-0 z-50 border-b border-emerald-800 shadow-lg">
@@ -282,16 +244,20 @@ export function Header() {
               </AnimatePresence>
             </div>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleConnect}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#4ade80] text-emerald-950 font-bold rounded-lg text-sm"
-            >
-              <Wallet className="w-4 h-4" />
-              {isLoading ? "..." : "Connect Wallet"}
-            </motion.button>
+            <ConnectButton.Custom>
+              {({ openConnectModal }) => (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={openConnectModal}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4ade80] text-emerald-950 font-bold rounded-lg text-sm"
+                >
+                  <Wallet className="w-4 h-4" />
+                  {isLoading ? "..." : "Connect Wallet"}
+                </motion.button>
+              )}
+            </ConnectButton.Custom>
           )}
         </div>
       </div>
