@@ -13,5 +13,14 @@
   "devDependencies": {
     "turbo": "^2"
   },
-  "packageManager": "pnpm@10.11.0"
+  "packageManager": "pnpm@10.11.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "prisma",
+      "@prisma/engines",
+      "@prisma/client",
+      "sharp"
+    ]
+  }
 }

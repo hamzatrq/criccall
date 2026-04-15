@@ -12,21 +12,22 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/contracts/package.json packages/contracts/
 
-# Copy Prisma schema + config before install (prisma generate runs at install)
+# Copy Prisma schema + config before install
 COPY apps/api/prisma/schema.prisma apps/api/prisma/
 COPY apps/api/prisma.config.ts apps/api/
 
-# Install all dependencies (frozen lockfile for reproducibility)
+# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy API source code and build config
 COPY apps/api/ apps/api/
 
-# Generate Prisma client explicitly (in case postinstall didn't fire)
+# Generate Prisma client
 RUN cd apps/api && npx prisma generate
 
-# Build the NestJS API
-RUN pnpm --filter api build
+# Build the NestJS API and verify output exists
+RUN cd apps/api && npx nest build && \
+    test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" && exit 1)
 
 # ── Production stage ─────────────────────────────────────────
 FROM node:22-slim AS production
