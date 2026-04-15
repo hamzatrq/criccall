@@ -31,6 +31,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TeamLogo } from "@/components/shared/team-logo";
 import { useAuth } from "@/lib/auth-context";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 /**
  * Map an API market object (Prisma shape) to the mock Market type the UI expects.
@@ -106,7 +107,8 @@ function mapApiLeaderboardEntry(raw: any, index: number): LeaderboardEntry {
 }
 
 export default function Home() {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { openConnectModal } = useConnectModal();
   const { data: liveMarketsRaw, isLoading: marketsLoading } = useLiveMarkets();
   const { data: leaderboardRaw, isLoading: leaderboardLoading } = useLeaderboard(1, 5);
 
@@ -693,7 +695,7 @@ export default function Home() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => login()}
+                onClick={() => openConnectModal?.()}
                 className="bg-green-600 text-white font-black px-8 py-4 rounded-xl flex items-center gap-3 mx-auto md:mx-0"
               >
                 Connect Wallet & Start Predicting

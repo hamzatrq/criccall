@@ -7,6 +7,7 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { wagmiConfig } from "@/lib/wagmi";
 import { AuthProvider } from "@/lib/auth-context";
 import { RoleProvider } from "@/lib/role-context";
+import { WelcomeClaimModal } from "@/components/shared/welcome-claim-modal";
 import "@rainbow-me/rainbowkit/styles.css";
 
 const queryClient = new QueryClient();
@@ -23,7 +24,10 @@ export function Providers({ children }: { children: ReactNode }) {
           })}
         >
           <AuthProvider>
-            <RoleProvider>{children}</RoleProvider>
+            <RoleProvider>
+              {children}
+              <WelcomeClaimModal />
+            </RoleProvider>
           </AuthProvider>
         </RainbowKitProvider>
       </QueryClientProvider>

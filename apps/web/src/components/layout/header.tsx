@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -63,12 +63,15 @@ export function Header() {
   const { isConnected, address } = useAccount();
   const { data: onChainBalance } = useCallBalance();
   const userRole = user?.role;
+  const wasConnected = useRef(false);
 
-  // Auto-trigger SIWE login when wallet connects but user isn't authenticated
+  // Auto-trigger SIWE login only when wallet freshly connects (false → true)
+  // Prevents re-login race condition during logout
   useEffect(() => {
-    if (isConnected && address && !isAuthenticated && !isLoading) {
+    if (isConnected && !wasConnected.current && address && !isAuthenticated && !isLoading) {
       login().catch((e) => console.error("SIWE login failed:", e));
     }
+    wasConnected.current = isConnected;
   }, [isConnected, address, isAuthenticated, isLoading, login]);
 
   return (
