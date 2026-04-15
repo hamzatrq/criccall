@@ -665,9 +665,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== FOOTER — bg-[#14532d] dark green ===== */}
-      <footer className="bg-[#14532d] text-white pt-24">
-        <div className="max-w-7xl mx-auto px-8 pb-20 border-b border-emerald-800 flex flex-col md:flex-row justify-between items-center gap-12">
+      {/* ===== CTA SECTION ===== */}
+      <section className="bg-[#14532d] text-white pt-24 pb-16">
+        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-12">
           {/* Left: CTA */}
           <div className="max-w-md text-center md:text-left">
             <motion.h2
@@ -713,17 +713,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-
-        {/* Bottom: copyright + links */}
-        <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row justify-between items-center text-sm font-normal text-emerald-200">
-          <p>© 2026 CricCall. Shariah-Compliant Cricket Predictions.</p>
-          <div className="flex gap-8 mt-6 md:mt-0">
-            <Link href="/privacy" className="text-emerald-300/70 hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="text-emerald-300/70 hover:text-white transition-colors">Terms of Service</Link>
-            <Link href="/responsible-play" className="text-emerald-300/70 hover:text-white transition-colors">Responsible Play</Link>
-          </div>
-        </div>
-      </footer>
+      </section>
     </div>
   );
 }
