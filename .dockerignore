@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+.git
+.next
+**/dist
+**/.env
+**/generated
+packages/contracts/artifacts
+packages/contracts/cache
+packages/contracts/typechain-types
