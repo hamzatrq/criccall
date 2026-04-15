@@ -45,9 +45,6 @@ COPY --from=base /app/apps/api/dist ./apps/api/dist
 COPY --from=base /app/apps/api/package.json ./apps/api/package.json
 COPY --from=base /app/apps/api/node_modules ./apps/api/node_modules
 
-# Copy generated Prisma client
-COPY --from=base /app/apps/api/generated ./apps/api/generated
-
 # Copy prisma schema + config (needed at runtime for migrations)
 COPY --from=base /app/apps/api/prisma ./apps/api/prisma
 COPY --from=base /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
