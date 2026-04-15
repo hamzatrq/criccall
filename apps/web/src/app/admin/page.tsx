@@ -24,11 +24,21 @@ import {
 } from "lucide-react";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "markets" | "pkr" | "oracle">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "markets" | "pkr" | "oracle" | "users">("overview");
 
   // Mint PKR state
   const [mintAmount, setMintAmount] = useState("");
   const [mintTo, setMintTo] = useState("");
+
+  // User management state
+  const [userSearchAddress, setUserSearchAddress] = useState("");
+  const [userSearching, setUserSearching] = useState(false);
+  const [foundUser, setFoundUser] = useState<any>(null);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [roleUpdating, setRoleUpdating] = useState(false);
+  const [roleUpdateSuccess, setRoleUpdateSuccess] = useState(false);
+  const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null);
 
   // Oracle state
   const [oracleMatchId, setOracleMatchId] = useState("");
@@ -58,7 +68,45 @@ export default function AdminPage() {
     { id: "markets" as const, label: "Markets", icon: Plus },
     { id: "pkr" as const, label: "Mint PKR", icon: Coins },
     { id: "oracle" as const, label: "Oracle", icon: Radio },
+    { id: "users" as const, label: "Users", icon: Users },
   ];
+
+  // Handle user search
+  const handleUserSearch = async () => {
+    if (!userSearchAddress.trim()) return;
+    setUserSearching(true);
+    setUserSearchError(null);
+    setFoundUser(null);
+    setRoleUpdateSuccess(false);
+    setRoleUpdateError(null);
+    try {
+      const profile = await api.getPublicProfile(userSearchAddress.trim());
+      setFoundUser(profile);
+      setSelectedRole(profile.role || "user");
+    } catch (err: any) {
+      setUserSearchError(err.message || "User not found");
+    } finally {
+      setUserSearching(false);
+    }
+  };
+
+  // Handle role update
+  const handleRoleUpdate = async () => {
+    if (!foundUser || !selectedRole) return;
+    setRoleUpdating(true);
+    setRoleUpdateError(null);
+    setRoleUpdateSuccess(false);
+    try {
+      await api.setUserRole(foundUser.walletAddress, selectedRole);
+      setRoleUpdateSuccess(true);
+      setFoundUser({ ...foundUser, role: selectedRole });
+      setTimeout(() => setRoleUpdateSuccess(false), 3000);
+    } catch (err: any) {
+      setRoleUpdateError(err.message || "Failed to update role");
+    } finally {
+      setRoleUpdating(false);
+    }
+  };
 
   // Handle create market
   const handleCreateMarket = async () => {
@@ -527,6 +575,157 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+          {/* ===== Manage Users ===== */}
+          {activeTab === "users" && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">Manage Users</h3>
+                    <p className="text-sm text-slate-500">
+                      Search users by wallet address and update their role.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div className="mt-6 flex gap-3">
+                  <input
+                    type="text"
+                    value={userSearchAddress}
+                    onChange={(e) => setUserSearchAddress(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleUserSearch()}
+                    placeholder="0x... wallet address"
+                    className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-colors font-mono text-sm"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleUserSearch}
+                    disabled={userSearching || !userSearchAddress.trim()}
+                    className="px-6 py-3 rounded-xl bg-purple-600 text-white font-bold text-sm flex items-center gap-2 hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {userSearching ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Users className="w-4 h-4" />
+                    )}
+                    Search
+                  </motion.button>
+                </div>
+
+                {/* Error */}
+                {userSearchError && (
+                  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                    {userSearchError}
+                  </div>
+                )}
+
+                {/* Found user */}
+                {foundUser && (
+                  <div className="mt-6 space-y-5">
+                    {/* User info card */}
+                    <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Wallet Address</p>
+                          <p className="text-sm font-mono font-bold text-slate-900 truncate">{foundUser.walletAddress}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Display Name</p>
+                          <p className="text-sm font-bold text-slate-900">{foundUser.displayName || "Not set"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Role</p>
+                          <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
+                            foundUser.role === "super_admin"
+                              ? "bg-red-50 text-red-700 border border-red-200"
+                              : foundUser.role === "sponsor"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          }`}>
+                            {foundUser.role === "super_admin" ? "Super Admin" : foundUser.role === "sponsor" ? "Sponsor" : "User"}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tier</p>
+                          <p className="text-sm font-bold text-slate-900">{foundUser.tier || "Bronze"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CALL Balance</p>
+                          <p className="text-sm font-bold text-slate-900">{Number(foundUser.cachedCallBalance || 0).toLocaleString()} CALL</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Role selector */}
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Set Role</p>
+                      <div className="flex gap-3">
+                        {[
+                          { value: "user", label: "User", color: "emerald" },
+                          { value: "sponsor", label: "Sponsor", color: "blue" },
+                          { value: "super_admin", label: "Super Admin", color: "red" },
+                        ].map((r) => (
+                          <button
+                            key={r.value}
+                            onClick={() => setSelectedRole(r.value)}
+                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2 ${
+                              selectedRole === r.value
+                                ? r.color === "emerald"
+                                  ? "bg-emerald-50 border-emerald-400 text-emerald-700"
+                                  : r.color === "blue"
+                                  ? "bg-blue-50 border-blue-400 text-blue-700"
+                                  : "bg-red-50 border-red-400 text-red-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                            }`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Role update feedback */}
+                    {roleUpdateError && (
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                        {roleUpdateError}
+                      </div>
+                    )}
+                    {roleUpdateSuccess && (
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Role updated successfully!
+                      </div>
+                    )}
+
+                    {/* Update button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleRoleUpdate}
+                      disabled={roleUpdating || selectedRole === foundUser.role}
+                      className="w-full py-3.5 rounded-xl bg-purple-600 text-white font-black flex items-center justify-center gap-2 shadow-sm hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {roleUpdating ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</>
+                      ) : (
+                        <><Shield className="w-4 h-4" /> Update Role</>
+                      )}
+                    </motion.button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

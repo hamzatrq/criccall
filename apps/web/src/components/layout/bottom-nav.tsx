@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, BarChart3, Tag, Gift, User, Store, Shield } from "lucide-react";
-import { useRole } from "@/lib/role-context";
+import { useAuth } from "@/lib/auth-context";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { role } = useRole();
+  const { user } = useAuth();
+  const userRole = user?.role;
 
   const baseTabs = [
     { href: "/", label: "Home", icon: Home },
@@ -30,7 +31,7 @@ export function BottomNav() {
     { href: "/sponsor", label: "Sponsor", icon: Store },
     { href: "/profile", label: "Profile", icon: User },
   ];
-  const tabs = role === "super_admin" ? adminTabs : role === "sponsor" ? sponsorTabs : baseTabs;
+  const tabs = userRole === "super_admin" ? adminTabs : userRole === "sponsor" ? sponsorTabs : baseTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-slate-200 bg-white">

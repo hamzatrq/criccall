@@ -29,10 +29,83 @@ import {
   Loader2,
   AlertCircle,
   Inbox,
+  ShieldAlert,
+  Wallet,
 } from "lucide-react";
+import Link from "next/link";
+import { useConnect, useAccount, useSwitchChain } from "wagmi";
+import { injected } from "wagmi/connectors";
+import { wirefluid } from "@/lib/wagmi";
 
 export default function SponsorPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading, login } = useAuth();
+  const { connect } = useConnect();
+  const { isConnected, chainId } = useAccount();
+  const { switchChain } = useSwitchChain();
+
+  const handleConnect = async () => {
+    try {
+      if (!isConnected) {
+        connect({ connector: injected() });
+      } else if (chainId !== wirefluid.id) {
+        switchChain({ chainId: wirefluid.id });
+      } else {
+        await login();
+      }
+    } catch (e) {
+      console.error("Connection failed:", e);
+    }
+  };
+
+  // Access gate: not authenticated
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-6">
+            <Wallet className="w-8 h-8 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 mb-2">Connect Your Wallet</h1>
+          <p className="text-slate-500 text-sm mb-8">
+            Connect your wallet to access the sponsor dashboard.
+          </p>
+          <button
+            onClick={handleConnect}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl text-sm hover:bg-emerald-700 transition-colors"
+          >
+            <Wallet className="w-4 h-4" />
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Access gate: wrong role
+  if (!isLoading && isAuthenticated && user?.role !== "sponsor" && user?.role !== "super_admin") {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 mb-2">Sponsor Access Required</h1>
+          <p className="text-slate-500 text-sm mb-4">
+            You need a sponsor role to access this dashboard. Contact the CricCall team to become a sponsor.
+          </p>
+          <p className="text-xs font-mono text-slate-400 mb-8 truncate">
+            {user?.walletAddress}
+          </p>
+          <Link
+            href="/markets"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl text-sm hover:bg-emerald-700 transition-colors"
+          >
+            Go to Markets
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const { data: brandProfile, isLoading: profileLoading } = useBrandProfile();
   const { data: campaignsData, isLoading: campaignsLoading } = useMyCampaigns();
   const { data: openMarketsData, isLoading: marketsLoading } = useMarkets({ status: "open" });

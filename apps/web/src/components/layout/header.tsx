@@ -5,22 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Shield, Store, User, ChevronDown, Wallet, LogOut, Settings } from "lucide-react";
+import { Bell, User, Wallet, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
-import { useRole, Role } from "@/lib/role-context";
 import { useUnreadCount, useNotifications } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConnect, useAccount, useSwitchChain } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { wirefluid } from "@/lib/wagmi";
-
-const roleConfig: Record<Role, { label: string; color: string; icon: typeof User }> = {
-  user: { label: "User", color: "#4ade80", icon: User },
-  sponsor: { label: "Sponsor", color: "#60a5fa", icon: Store },
-  super_admin: { label: "Admin", color: "#f87171", icon: Shield },
-};
 
 const navLinks = [
   { href: "/markets", label: "Markets" },
@@ -31,11 +24,9 @@ const navLinks = [
 
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showRolePicker, setShowRolePicker] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [pendingLogin, setPendingLogin] = useState(false);
   const { user, isAuthenticated, login, logout, isLoading } = useAuth();
-  const { role, setRole } = useRole();
   const pathname = usePathname();
   const { data: unreadData } = useUnreadCount();
   const unreadCount = unreadData?.count || 0;
@@ -75,7 +66,7 @@ export function Header() {
   const { isConnected, address, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const { data: onChainBalance } = useCallBalance();
-  const rc = roleConfig[role];
+  const userRole = user?.role;
 
   // When wallet connects and we have a pending login, switch to WireFluid then login
   useEffect(() => {
@@ -146,12 +137,12 @@ export function Header() {
                 </Link>
               );
             })}
-            {(role === "sponsor" || role === "super_admin") && (
+            {(userRole === "sponsor" || userRole === "super_admin") && (
               <Link href="/sponsor" className={`transition-colors pb-1 ${pathname.startsWith("/sponsor") ? "text-white font-bold border-b-2 border-blue-400" : "text-blue-300 hover:text-white"}`}>
                 Sponsor
               </Link>
             )}
-            {role === "super_admin" && (
+            {userRole === "super_admin" && (
               <Link href="/admin" className={`transition-colors pb-1 ${pathname.startsWith("/admin") ? "text-white font-bold border-b-2 border-red-400" : "text-red-300 hover:text-white"}`}>
                 Admin
               </Link>
@@ -161,43 +152,6 @@ export function Header() {
 
         {/* Right */}
         <div className="flex items-center gap-4">
-          {/* Role Switcher (demo) */}
-          <div className="relative">
-            <button
-              onClick={() => setShowRolePicker(!showRolePicker)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-600/50 text-[11px] font-bold text-emerald-200 hover:bg-emerald-800/50 transition-colors"
-            >
-              <rc.icon className="w-3 h-3" />
-              {rc.label}
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            <AnimatePresence>
-              {showRolePicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute right-0 top-9 w-40 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden z-50"
-                >
-                  {(Object.keys(roleConfig) as Role[]).map((r) => {
-                    const cfg = roleConfig[r];
-                    return (
-                      <button
-                        key={r}
-                        onClick={() => { setRole(r); setShowRolePicker(false); }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 ${role === r ? "bg-slate-50 font-medium" : ""}`}
-                      >
-                        <cfg.icon className="w-3.5 h-3.5" style={{ color: cfg.color }} />
-                        {cfg.label}
-                        {role === r && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-green-500" />}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* CALL Balance */}
           {isAuthenticated && user && (
             <div className="hidden sm:flex items-center gap-2 bg-emerald-800/50 px-4 py-1.5 rounded-full font-bold border border-emerald-700">
