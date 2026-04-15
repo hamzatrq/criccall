@@ -75,18 +75,19 @@ export default function DealsPage() {
   const { data: dealsData, isLoading } = useDeals({ category: categoryParam });
 
   const rawDeals = dealsData?.data || dealsData || [];
-  // Show eligible deals first
-  const allDeals = [...rawDeals].sort((a: any, b: any) => {
-    const aOk = canUnlock(a.minCall || 0) ? 0 : 1;
-    const bOk = canUnlock(b.minCall || 0) ? 0 : 1;
-    return aOk - bOk;
-  });
   const { data: onChainBalance } = useCallBalance();
   const callBalance = onChainBalance
     ? Math.floor(Number(formatCallBalance(onChainBalance as bigint)))
     : Number(user?.cachedCallBalance || 0);
 
   const canUnlock = (minCall: number) => isAuthenticated && callBalance >= minCall;
+
+  // Show eligible deals first
+  const allDeals = [...rawDeals].sort((a: any, b: any) => {
+    const aOk = canUnlock(a.minCall || 0) ? 0 : 1;
+    const bOk = canUnlock(b.minCall || 0) ? 0 : 1;
+    return aOk - bOk;
+  });
 
   const handleRedeem = async (dealId: string) => {
     setRedeeming(dealId);
