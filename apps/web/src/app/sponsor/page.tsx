@@ -34,18 +34,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useConnect, useAccount, useSwitchChain } from "wagmi";
-import { wirefluid } from "@/lib/wagmi";
+import { wirefluid, wagmiConfig } from "@/lib/wagmi";
 
 export default function SponsorPage() {
   const { user, isAuthenticated, isLoading, login } = useAuth();
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
   const { isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
 
   const handleConnect = async () => {
     try {
       if (!isConnected) {
-        connect({ connector: connectors[0] });
+        connect({ connector: wagmiConfig.connectors[0] });
       } else if (chainId !== wirefluid.id) {
         switchChain({ chainId: wirefluid.id });
       } else {

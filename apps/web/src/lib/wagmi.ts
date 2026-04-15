@@ -19,7 +19,7 @@ export const wirefluid = defineChain({
 
 export const wagmiConfig = createConfig({
   chains: [wirefluid],
-  connectors: [injected()],
+  connectors: [injected({ target: "metaMask" })],
   transports: {
     [wirefluid.id]: http(),
   },

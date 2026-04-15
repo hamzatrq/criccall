@@ -12,7 +12,7 @@ import { useUnreadCount, useNotifications } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConnect, useAccount, useSwitchChain } from "wagmi";
-import { wirefluid } from "@/lib/wagmi";
+import { wirefluid, wagmiConfig } from "@/lib/wagmi";
 
 const navLinks = [
   { href: "/markets", label: "Markets" },
@@ -61,7 +61,7 @@ export function Header() {
     if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
   };
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
   const { isConnected, address, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const { data: onChainBalance } = useCallBalance();
@@ -94,7 +94,7 @@ export function Header() {
       if (!isConnected) {
         // First connect wallet, then chain switch + login triggered by useEffect
         setPendingLogin(true);
-        connect({ connector: connectors[0] });
+        connect({ connector: wagmiConfig.connectors[0] });
       } else if (chainId !== wirefluid.id) {
         // Connected but wrong chain — switch first, then login
         setPendingLogin(true);
