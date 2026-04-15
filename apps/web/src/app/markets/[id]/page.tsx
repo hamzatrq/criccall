@@ -125,7 +125,7 @@ export default function MarketDetailPage() {
     ? totalPrizeNum // First predictor on this side gets the full prize
     : Math.round((amount / (selectedPool + amount)) * totalPrizeNum);
 
-  const maxBalance = onChainBalance ? Math.floor(Number(formatCallBalance(onChainBalance as bigint))) : 100;
+  const maxBalance = onChainBalance != null ? Math.floor(Number(formatCallBalance(onChainBalance as bigint))) : 0;
 
   // Summarise user's existing position
   const positions: any[] = myPositions ?? [];
