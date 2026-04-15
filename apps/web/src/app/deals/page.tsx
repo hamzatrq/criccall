@@ -29,6 +29,7 @@ const categories = [
   "Telecom",
   "Ecommerce",
   "Entertainment",
+  "Sports",
 ] as const;
 
 const brandData: Record<string, { image: string; color: string; name: string }> = {

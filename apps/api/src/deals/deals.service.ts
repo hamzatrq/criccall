@@ -32,7 +32,9 @@ export class DealsService {
     };
 
     if (category) {
-      where.brand = { category };
+      where.brand = {
+        category: { equals: category, mode: 'insensitive' },
+      };
     }
 
     // Get user's CALL balance if filtering by unlock status
