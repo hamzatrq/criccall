@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useDeals } from "@/hooks/use-api";
 import { useCallBalance, formatCallBalance } from "@/hooks/use-contracts";
 import { api } from "@/lib/api";
+import Image from "next/image";
 import {
   Lock,
   CheckCircle,
@@ -20,6 +21,8 @@ import {
   Wallet,
 } from "lucide-react";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const categories = [
   "All",
   "Food",
@@ -27,6 +30,44 @@ const categories = [
   "Ecommerce",
   "Entertainment",
 ] as const;
+
+const brandImages: Record<string, string> = {
+  foodpanda: "/brand-images/foodpanda-logo.jpeg",
+  kfc: "/brand-images/kfc-logo.png",
+  jazz: "/brand-images/jazz.jpeg",
+  daraz: "/brand-images/daraz-logo.jpeg",
+  ptcl: "/brand-images/ptcl-logo.jpeg",
+  psl: "/brand-images/psl-logo.jpeg",
+};
+
+const brandColors: Record<string, string> = {
+  foodpanda: "#D70F64",
+  kfc: "#E4002B",
+  jazz: "#ED1C24",
+  daraz: "#F85606",
+  ptcl: "#00A651",
+  psl: "#00A651",
+};
+
+function getBrandImage(deal: any): string | null {
+  const name = (deal.brandName || deal.brand?.brandName || "").toLowerCase();
+  for (const [key, path] of Object.entries(brandImages)) {
+    if (name.includes(key)) return path;
+  }
+  return deal.imageUrl || deal.brand?.brandLogo || null;
+}
+
+function getBrandColor(deal: any): string {
+  const name = (deal.brandName || deal.brand?.brandName || "").toLowerCase();
+  for (const [key, color] of Object.entries(brandColors)) {
+    if (name.includes(key)) return color;
+  }
+  return deal.brandColor || "#15803d";
+}
+
+function getBrandName(deal: any): string {
+  return deal.brandName || deal.brand?.brandName || "Brand";
+}
 
 export default function DealsPage() {
   const { user, isAuthenticated } = useAuth();
@@ -142,6 +183,9 @@ export default function DealsPage() {
             const minCall = deal.minCall || 0;
             const unlocked = canUnlock(minCall);
             const claimed = claimedDeal === deal.id;
+            const brandName = getBrandName(deal);
+            const brandColor = getBrandColor(deal);
+            const brandImage = getBrandImage(deal);
 
             return (
               <motion.div
@@ -151,60 +195,83 @@ export default function DealsPage() {
                 transition={{ delay: i * 0.05 }}
                 className={`relative rounded-2xl border overflow-hidden flex flex-col ${
                   unlocked
-                    ? "bg-white border-slate-200 shadow-sm hover:shadow-md transition-all group"
-                    : "bg-slate-50 border-slate-200 grayscale-[0.3]"
+                    ? "bg-white border-slate-200 shadow-sm hover:shadow-lg transition-all group"
+                    : "bg-slate-50 border-slate-200"
                 }`}
               >
-                {/* Card Content */}
-                <div className="p-5 flex gap-4">
-                  {/* Brand Logo */}
+                {/* Brand Banner */}
+                <div
+                  className="h-32 relative flex items-center justify-center"
+                  style={{ backgroundColor: brandColor + "12" }}
+                >
+                  {/* Color accent bar */}
                   <div
-                    className={`w-16 h-16 rounded-xl flex items-center justify-center text-base font-bold shrink-0 ${
-                      !unlocked ? "opacity-80" : ""
-                    }`}
-                    style={{
-                      backgroundColor: (deal.brandColor || "#6B7280") + "20",
-                      color: deal.brandColor || "#6B7280",
-                    }}
-                  >
-                    {deal.brandLogo || deal.brandName?.slice(0, 2) || "??"}
+                    className="absolute top-0 left-0 right-0 h-1"
+                    style={{ backgroundColor: brandColor }}
+                  />
+
+                  {brandImage ? (
+                    <Image
+                      src={brandImage}
+                      alt={brandName}
+                      width={80}
+                      height={80}
+                      className="object-contain rounded-xl"
+                      style={{ maxHeight: 80 }}
+                    />
+                  ) : (
+                    <div
+                      className="w-20 h-20 rounded-xl flex items-center justify-center text-2xl font-black text-white"
+                      style={{ backgroundColor: brandColor }}
+                    >
+                      {brandName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Min CALL badge */}
+                  <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 ${
+                    unlocked
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-200 text-slate-500"
+                  }`}>
+                    {unlocked ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : (
+                      <Lock className="w-3 h-3" />
+                    )}
+                    {formatCALL(minCall)} CALL
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${
-                        unlocked
-                          ? "text-slate-500"
-                          : "text-slate-500 opacity-60"
-                      }`}
-                    >
-                      {deal.brandName || "Brand"}
-                    </p>
-                    <h3
-                      className={`text-lg font-bold text-slate-900 leading-tight mb-1 truncate ${
-                        !unlocked ? "opacity-70" : ""
-                      }`}
-                    >
-                      {deal.title}
-                    </h3>
-                    <p
-                      className={`text-sm text-slate-500 line-clamp-2 ${
-                        !unlocked ? "opacity-60" : ""
-                      }`}
-                    >
-                      {deal.description}
-                    </p>
-                  </div>
+                  {!unlocked && isAuthenticated && (
+                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
+                  )}
                 </div>
 
-                {/* Footer */}
-                <div className="px-5 pb-5 mt-auto">
-                  {/* Meta */}
-                  <div
-                    className={`flex items-center gap-4 text-xs text-slate-500 font-medium mb-4 ${
+                {/* Card Body */}
+                <div className="p-5 flex-1 flex flex-col">
+                  <p
+                    className="text-xs font-bold uppercase tracking-wider mb-1"
+                    style={{ color: brandColor }}
+                  >
+                    {brandName}
+                  </p>
+                  <h3
+                    className={`text-lg font-bold text-slate-900 leading-tight mb-2 ${
+                      !unlocked ? "opacity-70" : ""
+                    }`}
+                  >
+                    {deal.title}
+                  </h3>
+                  <p
+                    className={`text-sm text-slate-500 line-clamp-2 mb-4 ${
                       !unlocked ? "opacity-60" : ""
                     }`}
                   >
+                    {deal.description}
+                  </p>
+
+                  {/* Meta */}
+                  <div className="flex items-center gap-4 text-xs text-slate-400 font-medium mt-auto mb-4">
                     {deal.totalRedeemed !== undefined && (
                       <span className="flex items-center gap-1">
                         <Users className="w-3.5 h-3.5" />
@@ -217,42 +284,42 @@ export default function DealsPage() {
                     {deal.expiresAt && (
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        Expires {daysUntil(deal.expiresAt)}d
+                        {daysUntil(deal.expiresAt)}d left
                       </span>
                     )}
                   </div>
 
                   {/* Action Row */}
-                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-slate-100">
                     {!isAuthenticated ? (
-                      <>
-                        <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                           <Wallet className="w-3.5 h-3.5" />
                           Sign in to redeem
-                        </div>
-                        <div className="bg-slate-200 text-slate-500 px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs font-bold">
-                          <Lock className="w-3 h-3" />
+                        </span>
+                        <span className="bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-bold">
                           Locked
-                        </div>
-                      </>
+                        </span>
+                      </div>
                     ) : unlocked ? (
-                      <>
-                        <div className="text-xs font-bold text-green-700 flex items-center gap-1">
-                          <CheckCircle className="w-3.5 h-3.5 fill-green-700 text-white" />
-                          Requires {formatCALL(minCall)} CALL
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-green-700 flex items-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Unlocked
+                        </span>
                         {claimed ? (
-                          <div className="flex items-center gap-1 text-green-600">
+                          <span className="flex items-center gap-1 text-green-600 text-sm font-bold">
                             <CheckCircle className="w-4 h-4" />
-                            <span className="text-sm font-bold">Claimed</span>
-                          </div>
+                            Claimed
+                          </span>
                         ) : (
                           <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             onClick={() => handleRedeem(deal.id)}
                             disabled={redeeming === deal.id}
-                            className="px-4 py-2 bg-green-700 text-white rounded-lg font-bold text-sm hover:bg-green-800 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                            className="px-5 py-2 rounded-lg font-bold text-sm text-white shadow-sm transition-all disabled:opacity-50 flex items-center gap-2"
+                            style={{ backgroundColor: brandColor }}
                           >
                             {redeeming === deal.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -260,21 +327,20 @@ export default function DealsPage() {
                             {redeeming === deal.id ? "Redeeming..." : "Redeem"}
                           </motion.button>
                         )}
-                        {redeemError && redeeming !== deal.id && !claimed && (
-                          <p className="text-xs text-red-600 font-medium mt-1">{redeemError}</p>
-                        )}
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <div className="text-xs font-bold text-red-600 flex items-center gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                           <Lock className="w-3.5 h-3.5" />
-                          Requires {formatCALL(minCall)} CALL
-                        </div>
-                        <div className="bg-slate-200 text-slate-500 px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs font-bold">
-                          <Lock className="w-3 h-3" />
                           Need {formatCALL(minCall)} CALL
-                        </div>
-                      </>
+                        </span>
+                        <span className="bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-bold">
+                          Locked
+                        </span>
+                      </div>
+                    )}
+                    {redeemError && redeeming !== deal.id && !claimed && (
+                      <p className="text-xs text-red-600 font-medium mt-2">{redeemError}</p>
                     )}
                   </div>
                 </div>
@@ -303,7 +369,7 @@ export default function DealsPage() {
                         Deal Redeemed!
                       </h3>
                       <p className="text-sm text-slate-500 mb-3 text-center">
-                        {deal.brandName} — {deal.title}
+                        {brandName} — {deal.title}
                       </p>
                       <button
                         onClick={handleCopy}
